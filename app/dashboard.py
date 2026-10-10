@@ -250,8 +250,9 @@ def regression_tab(model: dict | None, tables: dict) -> None:
 
     st.divider()
     st.metric("Estimated Site EUI", f"{prediction:.1f} kBtu/ft²/year")
-    st.caption(f"Building class: {values['building_class']}. {missing} of {len(model['features'])} model inputs "
-               "were missing and filled by the fitted preprocessing pipeline.")
+    input_note = (f"{missing} of {len(model['features'])} model inputs were missing and imputed."
+                  if missing else "All model inputs were supplied.")
+    st.caption(f"Building class: {values['building_class']}. {input_note}")
     if missing >= 6:
         st.warning("Many inputs were unknown. Add observed location and weather values if you have them.")
     if outside:
@@ -348,14 +349,16 @@ def classification_tab(model: dict | None, tables: dict) -> None:
             "month_cos": np.cos(2 * np.pi * month / 12),
         })
     row = pd.DataFrame([values], columns=model["features"])
+    missing_features = int(row.isna().sum(axis=1).iloc[0])
     probabilities = model["model"].predict_proba(row)[0]
     code = int(model["model"].predict(row)[0])
     predicted = model["class_names"][code]
 
     st.divider()
     st.metric("Predicted dataset class", predicted)
-    st.caption(f"{provided} of {len(measurements)} measurements supplied. Unknown fields were imputed "
-               "using the fitted training pipeline.")
+    input_note = (f"{missing_features} model inputs, including any unknown date fields, were imputed."
+                  if missing_features else "All model inputs were supplied.")
+    st.caption(f"{provided} of {len(measurements)} measurements supplied. {input_note}")
     if provided < 5:
         st.warning("Most measurements are missing. Treat this classification cautiously.")
     unusual = [field for field in measurements if pd.notna(values[field])
@@ -459,8 +462,10 @@ def clustering_tab(model: dict | None, tables: dict) -> None:
 
     st.divider()
     st.metric("Assigned K-Means cluster", str(cluster))
-    st.caption(f"{provided} of {len(values)} raw reading fields supplied. Unknown fields were filled "
-               "by the fitted preprocessing pipeline. Cluster IDs are arbitrary.")
+    input_note = ("Unknown fields were filled by the fitted preprocessing pipeline."
+                  if provided < len(values) else "No raw reading fields were missing.")
+    st.caption(f"{provided} of {len(values)} raw reading fields supplied. {input_note} "
+               "Cluster IDs are arbitrary.")
     if provided < 8:
         st.warning("Many readings are missing. Add measured pollutants, weather, and time where available.")
 
