@@ -1,5 +1,6 @@
-"""Generate the two readable Review 2 notebooks from the reusable analysis code."""
+"""Generate unexecuted Review 2 notebook drafts only on explicit request."""
 
+import argparse
 from pathlib import Path
 from textwrap import dedent
 
@@ -16,13 +17,13 @@ def code(text):
     return nbf.v4.new_code_cell(dedent(text).strip())
 
 
-def write_notebook(name, cells):
+def write_notebook(name, cells, output_dir):
     notebook = nbf.v4.new_notebook(
         cells=cells,
         metadata={"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
                   "language_info": {"name": "python"}},
     )
-    nbf.write(notebook, ROOT / "notebooks" / name)
+    nbf.write(notebook, output_dir / name)
 
 
 clustering_cells = [
@@ -303,6 +304,23 @@ classification_cells = [
     """),
 ]
 
-write_notebook("clustering.ipynb", clustering_cells)
-write_notebook("classification_review2.ipynb", classification_cells)
-print("Wrote Review 2 notebooks")
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-dir", required=True, type=Path,
+                        help="Directory for two unexecuted notebook drafts")
+    parser.add_argument("--force", action="store_true",
+                        help="Replace existing drafts in the chosen directory")
+    args = parser.parse_args()
+    output_dir = args.output_dir.resolve()
+    names = ("clustering.ipynb", "classification_review2.ipynb")
+    existing = [name for name in names if (output_dir / name).exists()]
+    if existing and not args.force:
+        parser.error("Refusing to replace existing notebooks: " + ", ".join(existing))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    write_notebook(names[0], clustering_cells, output_dir)
+    write_notebook(names[1], classification_cells, output_dir)
+    print(f"Wrote unexecuted drafts to {output_dir}")
+
+
+if __name__ == "__main__":
+    main()

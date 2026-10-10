@@ -45,7 +45,7 @@ For the GUI, `src/regression.py` fits a separate Random Forest on 12 practical b
 
 ## Setup
 
-Use Python 3.13. The Review 2 notebooks and original GUI run were verified with Python 3.13.9; the saved models use scikit-learn 1.7.2. `requirements.txt` contains the hardened app runtime; `requirements-dev.txt` adds the notebook and plotting tools. The updated Streamlit and Tornado pins still need a fresh-environment smoke test before public release.
+Use Python 3.13. The Review 2 notebooks and original GUI run were verified with Python 3.13.9; the saved models use scikit-learn 1.7.2. `requirements.txt` contains the proposed app runtime; `requirements-dev.txt` adds the notebook and plotting tools. The Streamlit 1.65.0 upgrade is **not yet validated in a fresh environment**; follow [DEPLOYMENT.md](DEPLOYMENT.md) before any release.
 
 ```bash
 cd review2_case_study
@@ -89,9 +89,9 @@ The **Study results** view contains the internal reliability checks, regression 
 
 ### Public-release status
 
-This is a polished **research demonstration**, not a validated operational service. Public deployment is on hold until the fresh-environment dependency and smoke checks pass and the instructor-supplied data can lawfully be redistributed. Before presenting it as a real-world predictor, obtain and document the water file's original source, measurement units, label construction rules, intended water use, and redistribution rights; verify the building dataset's public redistribution terms; and test each model on new representative data from the intended users. A random held-out split and masked-input stability check do not establish transport to a new site, year, or sampling method. The water time-split stress test also shows materially worse Poor-label recall. Do not market its class or probability as a drinking-water safety decision. The air clusters are patterns, not official AQI categories.
+This is a polished **research demonstration**, not a validated operational service. **Publication of the building and water datasets remains on hold pending data-owner permission.** Do not push this repository or upload its bundle to a public service while that decision is open. Public deployment also requires fresh-environment dependency and smoke checks. Before presenting it as a real-world predictor, obtain and document the water file's original source, measurement units, label construction rules, intended water use, and redistribution rights; verify the building dataset's public redistribution terms; and test each model on new representative data from the intended users. A random held-out split and masked-input stability check do not establish transport to a new site, year, or sampling method. The water time-split stress test also shows materially worse Poor-label recall. Do not market its class or probability as a drinking-water safety decision. The air clusters are patterns, not official AQI categories.
 
-For Streamlit Community Cloud, push this repository to GitHub, select `app/streamlit_app.py` as the entrypoint, and select Python 3.13 in Advanced settings. The default Python version may differ. The service installs `requirements.txt`; notebook packages are kept in `requirements-dev.txt`. For another Python host, run `python -m streamlit run app/streamlit_app.py` with the `models/`, `results/`, and source `data/` paths available. Use HTTPS and a hosting environment with enough memory for the bundled models and tables. Keep model files from this trusted build under deployment control: `joblib.load` is unsafe for untrusted files. Check startup, example predictions, input refusal messages, and downloads after each model/data update; regenerate release evidence whenever a model changes. The [Beijing source](https://archive.ics.uci.edu/dataset/501/beijing) is CC BY 4.0 and requires attribution. Do not make the repository public until the instructor-supplied building and water files' redistribution rights are confirmed.
+The deployment preparation and the exact remaining checks are in [DEPLOYMENT.md](DEPLOYMENT.md). Streamlit Community Cloud is the direct fit for this Python/WebSocket app; Python 3.13 must be selected explicitly. Keep model files from this trusted build under deployment control: `joblib.load` is unsafe for untrusted files. The [Beijing source](https://archive.ics.uci.edu/dataset/501/beijing) is CC BY 4.0 and requires attribution.
 
 ### Interface references
 
@@ -110,7 +110,7 @@ requirements.txt
 requirements-dev.txt
 ```
 
-The `src/build_notebooks.py` generator recreates the clean Review 2 notebook source. Running it replaces notebook outputs, so rerun both notebooks afterward.
+The `src/build_notebooks.py` generator writes **unexecuted drafts** only when given `--output-dir`; it refuses to replace existing notebooks unless `--force` is explicitly provided. Keep the executed review notebooks intact.
 
 ## Scope and limitations
 
