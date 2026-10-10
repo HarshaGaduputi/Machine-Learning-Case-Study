@@ -1,0 +1,14 @@
+.DS_Store
+.ipython/
+.matplotlib/
+.cache/
+.pydeps/
+.venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+notebooks/X_train.csv
+notebooks/X_test.csv
+notebooks/y_train.csv
+notebooks/y_test.csv
+outputs/
