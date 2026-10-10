@@ -9,12 +9,15 @@ It is not validated for operational energy, water-safety, or health decisions.
 
 The building and water CSVs are tracked in Git, and the interface can show real
 example rows from them. The data owner's permission to redistribute or publicly
-display them is unresolved. Keep this gate **on hold**. Do not push this repo to
-a public repository, send the complete bundle to a hosting provider, or open a
-public app until the owner supplies written permission or an approved replacement
-data plan is implemented and checked. An ignore rule does not remove files already
-committed to Git history. The Beijing source also needs visible CC BY 4.0
-attribution. This document does not assume that permission will be granted.
+display them is unresolved. Keep this gate **on hold**. Both exact CSV blobs were
+already present in the public GitHub repository before the reviewed project was
+pushed on 2026-10-10; reorganizing the repository does not resolve that exposure
+or grant permission. Do not deploy the app, send its complete bundle to another
+provider, or further redistribute those files until the owner supplies written
+permission or an approved replacement-data plan is implemented and checked. An
+ignore rule does not remove files already committed to Git history. The Beijing
+source also needs visible CC BY 4.0 attribution. This document does not assume
+that permission will be granted.
 
 ## Hosting choice
 
