@@ -574,14 +574,17 @@ def main() -> None:
     water = load_model("classification_model.joblib")
     air = load_model("clustering_model.joblib")
     tables = load_tables()
-    reg, cls, cluster, results = st.tabs(["Regression", "Classification", "Clustering", "Study results"])
-    with reg:
+    view = st.segmented_control(
+        "Prediction task", ["Regression", "Classification", "Clustering", "Study results"],
+        default="Regression", key="current_view", label_visibility="collapsed", width="stretch",
+    )
+    if view == "Regression":
         regression_tab(building, tables)
-    with cls:
+    elif view == "Classification":
         classification_tab(water, tables)
-    with cluster:
+    elif view == "Clustering":
         clustering_tab(air, tables)
-    with results:
+    else:
         results_tab(tables)
 
 

@@ -75,7 +75,7 @@ Then start the GUI:
 python -m streamlit run app/streamlit_app.py
 ```
 
-Open the local URL printed by Streamlit. The GUI has three prediction tabs and one study-results tab. Inputs start blank instead of silently displaying dataset medians. Unknown optional values are explicitly handled by each fitted model's imputer. Each predictor also has a switch that starts the form with an actual row from its supplied dataset; you can edit that row before predicting.
+Open the local URL printed by Streamlit. The GUI has three prediction views and one study-results view, selected from a persistent task switcher. Inputs start blank instead of silently displaying dataset medians. Unknown optional values are explicitly handled by each fitted model's imputer. Each predictor also has a switch that starts the form with an actual row from its supplied dataset; you can edit that row before predicting.
 
 1. **Regression:** enter floor area and facility use. Building class is derived from real facility/class combinations in the source data. Year built, rating, anonymized region code, elevation, and weather can be entered when known. The output is Site EUI in kBtu/ft²/year, with held-out comparison charts. Inputs outside the source data's observed range are flagged.
 2. **Classification:** enter a sample date and available water measurements to predict `Good`, `Moderate`, or `Poor`. Unknown measurements can stay blank and are handled by the fitted imputer. The app validates numeric measurements, shows observed 1st–99th percentile ranges as entry guidance, and displays model probabilities plus the held-out confusion matrix. The supplied water file does not document measurement units; enter values in its original scale. The observed ranges are not safety limits.
@@ -83,7 +83,7 @@ Open the local URL printed by Streamlit. The GUI has three prediction tabs and o
 
 The new input's true building EUI or water-quality class is unknown, so it is never shown as a measured outcome in the test charts. The clustering projection is a display of the entered reading; it is not a known air-quality label. Every historical plotted value comes from the supplied datasets and fitted models.
 
-The **Study results** tab contains the regression test metrics, consolidated ten-classifier table, clustering comparison, elbow curve, PCA scatterplot, linkage comparison, and method limits. No public deployment is included.
+The **Study results** view contains the regression test metrics, consolidated ten-classifier table, clustering comparison, elbow curve, PCA scatterplot, linkage comparison, and method limits. No public deployment is included.
 
 ### Interface references
 
