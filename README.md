@@ -75,15 +75,19 @@ Then start the GUI:
 python -m streamlit run app/streamlit_app.py
 ```
 
-Open the local URL printed by Streamlit. The GUI has three prediction tabs:
+Open the local URL printed by Streamlit. The GUI has three prediction tabs and one study-results tab. Inputs start blank instead of silently displaying dataset medians. Unknown optional values are explicitly handled by each fitted model's imputer. Each predictor also has a switch that starts the form with an actual row from its supplied dataset; you can edit that row before predicting.
 
-1. **Regression:** enter building and annual weather details to predict Site EUI. After prediction, see the distribution of actual held-out values and an actual-versus-predicted test scatterplot.
-2. **Classification:** enter a sample date and available water measurements to predict `Good`, `Moderate`, or `Poor`; blank measurements are imputed by the fitted model. After prediction, see model probabilities and the held-out confusion matrix.
-3. **Clustering:** enter an hourly pollution and weather reading to receive a K-Means cluster assignment and its average measurements. After prediction, see the reading projected among real historical observations and its pollutant measurements compared with the assigned cluster averages.
+1. **Regression:** enter floor area and facility use. Building class is derived from real facility/class combinations in the source data. Year built, rating, anonymized region code, elevation, and weather can be entered when known. The output is Site EUI in kBtu/ft²/year, with held-out comparison charts. Inputs outside the source data's observed range are flagged.
+2. **Classification:** enter a sample date and available water measurements to predict `Good`, `Moderate`, or `Poor`. Unknown measurements can stay blank and are handled by the fitted imputer. The app validates numeric measurements, shows observed 1st–99th percentile ranges as entry guidance, and displays model probabilities plus the held-out confusion matrix. The supplied water file does not document measurement units; enter values in its original scale. The observed ranges are not safety limits.
+3. **Clustering:** enter measured pollutant concentrations. Weather, month, hour, and wind direction are optional. Units follow the Beijing source dataset. The result shows a K-Means cluster, the reading projected among real historical observations, and entered pollutant measurements compared with cluster averages.
 
 The new input's true building EUI or water-quality class is unknown, so it is never shown as a measured outcome in the test charts. The clustering projection is a display of the entered reading; it is not a known air-quality label. Every historical plotted value comes from the supplied datasets and fitted models.
 
-Additional tabs display the clustering comparison, elbow curve, PCA scatterplot, and linkage comparison. No public deployment is included.
+The **Study results** tab contains the regression test metrics, consolidated ten-classifier table, clustering comparison, elbow curve, PCA scatterplot, linkage comparison, and method limits. No public deployment is included.
+
+### Interface references
+
+The form structure was checked against [ENERGY STAR's description of EUI](https://www.energystar.gov/buildings/benchmark/understand-metrics/what-eui), [USGS water-quality parameter conventions](https://water.usgs.gov/nwc/NWC/water_quality/tables/constituent.html), the [UCI Beijing dataset's field definitions and units](https://archive.ics.uci.edu/dataset/501/beijing), and [Streamlit's form behavior](https://docs.streamlit.io/develop/concepts/architecture/forms). These references guide labels and interaction only. Predictions use the local supplied datasets and saved models, not values from those websites.
 
 ## Repository structure
 
