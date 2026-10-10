@@ -64,7 +64,10 @@ Both Review 2 notebooks have already been executed from a clean kernel and saved
 
 ```bash
 python -m src.regression
+python -m src.app_diagnostics
 ```
+
+The second command rebuilds the GUI's held-out regression and classification charts from the saved models and original datasets. Run it again after refitting either model. The clustering notebook saves the PCA projection used to place a new reading on the historical scatterplot.
 
 Then start the GUI:
 
@@ -74,9 +77,11 @@ python -m streamlit run app/streamlit_app.py
 
 Open the local URL printed by Streamlit. The GUI has three prediction tabs:
 
-1. **Regression:** enter building and annual weather details to predict Site EUI.
-2. **Classification:** enter a sample date and available water measurements to predict `Good`, `Moderate`, or `Poor`; blank measurements are imputed by the fitted model.
-3. **Clustering:** enter an hourly pollution and weather reading to receive a K-Means cluster assignment and its average measurements.
+1. **Regression:** enter building and annual weather details to predict Site EUI. After prediction, see the distribution of actual held-out values and an actual-versus-predicted test scatterplot.
+2. **Classification:** enter a sample date and available water measurements to predict `Good`, `Moderate`, or `Poor`; blank measurements are imputed by the fitted model. After prediction, see model probabilities and the held-out confusion matrix.
+3. **Clustering:** enter an hourly pollution and weather reading to receive a K-Means cluster assignment and its average measurements. After prediction, see the reading projected among real historical observations and its pollutant measurements compared with the assigned cluster averages.
+
+The new input's true building EUI or water-quality class is unknown, so it is never shown as a measured outcome in the test charts. The clustering projection is a display of the entered reading; it is not a known air-quality label. Every historical plotted value comes from the supplied datasets and fitted models.
 
 Additional tabs display the clustering comparison, elbow curve, PCA scatterplot, and linkage comparison. No public deployment is included.
 

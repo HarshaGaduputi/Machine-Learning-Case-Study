@@ -47,6 +47,8 @@ def load_tables():
         "elbow": results / "clustering_elbow.csv",
         "pca": results / "clustering_pca.csv",
         "linkages": results / "clustering_linkages.csv",
+        "regression_test": results / "regression_gui_test_predictions.csv",
+        "classification_confusion": results / "classification_gui_confusion.csv",
     }
     return {name: pd.read_csv(path) if path.exists() else None for name, path in paths.items()}
 
@@ -115,6 +117,31 @@ with regression_tab:
             prediction = float(regression["model"].predict(row)[0])
             st.success(f"Predicted Site EUI: {prediction:.2f}")
             st.caption("This estimate is not a building audit or efficiency certification.")
+            if tables["regression_test"] is not None:
+                test = tables["regression_test"]
+                st.markdown("**How this estimate compares with held-out buildings**")
+                fig = px.histogram(
+                    test, x="Actual Site EUI", nbins=60,
+                    title="Actual energy use in the held-out test buildings",
+                    color_discrete_sequence=["#167e8c"],
+                )
+                fig.add_vline(x=prediction, line_width=3, line_dash="dash", line_color="#d9463e",
+                              annotation_text="Your predicted EUI", annotation_position="top right")
+                fig.update_layout(yaxis_title="Number of test buildings", showlegend=False)
+                st.plotly_chart(fig, width="stretch")
+                st.caption(f"Bars show the {len(test):,} real held-out target values. The dashed line is the model's estimate for your input; its actual EUI is unknown.")
+
+                sample = test.sample(n=min(3000, len(test)), random_state=42)
+                fig = px.scatter(
+                    sample, x="Actual Site EUI", y="Predicted Site EUI", opacity=0.35,
+                    title="Model predictions versus actual energy use on held-out buildings",
+                    color_discrete_sequence=["#174464"],
+                )
+                upper = float(max(sample["Actual Site EUI"].max(), sample["Predicted Site EUI"].max()))
+                fig.add_shape(type="line", x0=0, y0=0, x1=upper, y1=upper,
+                              line=dict(color="#d9463e", dash="dash"))
+                st.plotly_chart(fig, width="stretch")
+                st.caption(f"Each dot is a real held-out building ({len(sample):,} sampled for display). The dashed diagonal is perfect prediction; your input has no known actual value to place on this plot.")
         if regression_metrics is not None:
             m = regression_metrics.iloc[0]
             st.info(f"Held-out evaluation: R² {m['R2']:.3f} · RMSE {m['RMSE']:.2f} · MAE {m['MAE']:.2f} · {int(m['Test Rows']):,} test buildings")
@@ -184,6 +211,22 @@ with classification_tab:
                 })
                 st.dataframe(probability_table.style.format({"Model probability": "{:.1%}"}),
                              width="stretch", hide_index=True)
+                fig = px.bar(probability_table, x="Class", y="Model probability",
+                             title="Model probabilities for your water sample",
+                             color="Class", color_discrete_sequence=px.colors.qualitative.Safe)
+                fig.update_layout(yaxis_tickformat=".0%", yaxis_range=[0, 1], showlegend=False)
+                st.plotly_chart(fig, width="stretch")
+                st.caption("These are the fitted model's probabilities for the supplied measurements, not measured water-quality outcomes.")
+                if tables["classification_confusion"] is not None:
+                    matrix = tables["classification_confusion"].set_index("Actual class")
+                    fig = px.imshow(
+                        matrix.to_numpy(), x=matrix.columns.tolist(), y=matrix.index.tolist(),
+                        text_auto=True, aspect="auto", color_continuous_scale="Blues",
+                        labels=dict(x="Predicted class", y="Actual class", color="Test samples"),
+                        title="Held-out water samples: actual versus predicted class",
+                    )
+                    st.plotly_chart(fig, width="stretch")
+                    st.caption(f"Counts come from {int(matrix.to_numpy().sum()):,} labeled samples in the original held-out test set; your new sample is not included.")
         if classification_results is not None:
             with st.expander("All ten classifier results"):
                 st.dataframe(classification_results.round(4), width="stretch", hide_index=True)
@@ -221,6 +264,35 @@ with predict_tab:
         st.caption(f"Distance to this cluster centre in standardized feature space: {distances[cluster]:.2f}. Cluster numbers are arbitrary identifiers.")
         st.markdown("**Typical measurements in this cluster**")
         st.dataframe(profile.to_frame("Cluster average").T.round(2), width="stretch")
+        if tables["pca"] is not None and "pca" in artifact:
+            points = tables["pca"].copy()
+            points["Cluster"] = points["K-Means Cluster"].astype(str)
+            location = artifact["pca"].transform(scaled)[0]
+            fig = px.scatter(
+                points, x="PC1", y="PC2", color="Cluster", opacity=0.4,
+                title="Your reading among 3,000 historical Beijing observations",
+                color_discrete_sequence=px.colors.qualitative.Safe,
+            )
+            fig.add_scatter(x=[location[0]], y=[location[1]], mode="markers+text",
+                            marker=dict(symbol="diamond", size=17, color="#d9463e",
+                                        line=dict(width=2, color="white")),
+                            text=["Your reading"], textposition="top center",
+                            name="Your reading")
+            fig.update_layout(xaxis_title="Principal component 1", yaxis_title="Principal component 2")
+            st.plotly_chart(fig, width="stretch")
+            st.caption("Historical points are the real analysis sample. The diamond is your entered reading projected with the same fitted PCA; clustering itself uses all 17 features.")
+
+        ratios = pd.DataFrame({
+            "Pollutant": POLLUTANTS,
+            "Compared with cluster average": [values[name] / profile[name] for name in POLLUTANTS],
+        })
+        fig = px.bar(ratios, x="Pollutant", y="Compared with cluster average",
+                     title="Your pollutant readings relative to this cluster's averages",
+                     color_discrete_sequence=["#167e8c"])
+        fig.add_hline(y=1, line_dash="dash", line_color="#d9463e")
+        fig.update_layout(yaxis_title="Your reading ÷ cluster average")
+        st.plotly_chart(fig, width="stretch")
+        st.caption("A ratio of 1 means the entered measurement equals the observed cluster average. This is a comparison with the historical data, not an air-quality or safety threshold.")
 
 with explore_tab:
     if comparison is not None:

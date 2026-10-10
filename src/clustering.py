@@ -211,6 +211,7 @@ def save_outputs(result: dict, directory: Path) -> None:
     joblib.dump({
         "preprocessing": result["preprocessing"],
         "kmeans": result["kmeans"],
+        "pca": result["pca"],
         "features": FEATURES,
         "profile": result["profile"],
         "raw_medians": result["raw_medians"],
