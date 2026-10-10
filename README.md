@@ -1,6 +1,6 @@
 # Machine Learning Case Study · Review 2
 
-This project has three assigned tracks and a working interactive clustering GUI. The Review 2 notebooks run the full water-quality classification comparison and the full Beijing air-quality clustering analysis. The supplied Review 1 regression and classification notebooks are retained in `notebooks/`, with local dataset paths repaired.
+This project has three assigned tracks and a working interactive GUI for **regression, classification, and clustering**. The Review 2 notebooks run the full water-quality classification comparison and the full Beijing air-quality clustering analysis. The supplied Review 1 regression and classification notebooks are retained in `notebooks/`, with local dataset paths repaired.
 
 ## Problem statements and data
 
@@ -41,6 +41,8 @@ The elbow and candidate silhouette curves select `K=3`. The clustering notebook 
 
 `notebooks/regression_review1.ipynb` and `notebooks/classification_review1_part_a.ipynb` are the provided Review 1 work. Their saved outputs remain available. They were not refitted as part of this Review 2 run; Review 2 classification is a fresh common-split comparison covering Parts A and B.
 
+For the GUI, `src/regression.py` fits a separate Random Forest on 12 practical building and weather inputs from the same regression dataset. Its held-out test performance is **R² 0.4969, RMSE 41.51, MAE 20.94** on 15,152 buildings. It does not replace the ten-algorithm Review 1 notebook.
+
 ## Setup
 
 Use Python 3.11–3.13. The Review 2 notebooks and GUI were verified with Python 3.13, scikit-learn 1.7.2, pandas 3.0.6, Streamlit 1.51.0, and the version ranges in `requirements.txt`.
@@ -58,13 +60,25 @@ Open and **Run All** for these notebooks in order:
 1. `notebooks/clustering.ipynb`
 2. `notebooks/classification_review2.ipynb`
 
-Both Review 2 notebooks have already been executed from a clean kernel and saved with visible outputs. Running them again refreshes `results/` and `models/`. The GUI reads the saved clustering model, so run the clustering notebook before starting it:
+Both Review 2 notebooks have already been executed from a clean kernel and saved with visible outputs. Running them again refreshes `results/` and `models/`. To rebuild the regression model used by the GUI, run:
+
+```bash
+python -m src.regression
+```
+
+Then start the GUI:
 
 ```bash
 python -m streamlit run app/streamlit_app.py
 ```
 
-Open the local URL printed by Streamlit. The app accepts pollution, weather, hour, month, and wind-direction inputs and returns a K-Means cluster assignment and that cluster's average measurements. It also displays the algorithm comparison, elbow curve, PCA scatterplot, and linkage comparison. No public deployment is included.
+Open the local URL printed by Streamlit. The GUI has three prediction tabs:
+
+1. **Regression:** enter building and annual weather details to predict Site EUI.
+2. **Classification:** enter a sample date and available water measurements to predict `Good`, `Moderate`, or `Poor`; blank measurements are imputed by the fitted model.
+3. **Clustering:** enter an hourly pollution and weather reading to receive a K-Means cluster assignment and its average measurements.
+
+Additional tabs display the clustering comparison, elbow curve, PCA scatterplot, and linkage comparison. No public deployment is included.
 
 ## Repository structure
 
@@ -85,6 +99,7 @@ The `src/build_notebooks.py` generator recreates the clean Review 2 notebook sou
 - The clustering application is an exploratory assignment tool. It does not predict a ground-truth air-quality label or provide health guidance.
 - Hierarchical clusters are available only for the 3,000-row analysis sample; the GUI predicts K-Means clusters for new readings.
 - The classification scores are measured on one fixed held-out split, with 12,000 labeled training rows used for each algorithm. They are not external validation scores.
+- The regression GUI model uses 12 inputs so the form remains practical; its score is measured separately from the ten-model Review 1 comparison.
 - The source folder was a file export without Git metadata or a remote URL. This project can be committed and pushed to the team's GitHub repository; a public URL and earlier commit history cannot be reconstructed from the export.
 
 ## AI assistance disclosure

@@ -1,7 +1,7 @@
 numpy>=2.3,<3
 pandas>=2.2,<4
 scipy>=1.16,<2
-scikit-learn>=1.7,<1.9
+scikit-learn==1.7.2
 matplotlib>=3.10,<4
 seaborn>=0.13,<1
 joblib>=1.5,<2

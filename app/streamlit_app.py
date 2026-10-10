@@ -1,5 +1,6 @@
-"""Interactive Review 2 dashboard for Beijing air-quality clusters."""
+"""Interactive predictions for all three case-study tracks."""
 
+from datetime import date
 from pathlib import Path
 import sys
 
@@ -13,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from src.clustering import COMPASS, POLLUTANTS, WEATHER, engineer_features  # noqa: E402
 
-st.set_page_config(page_title="Air Quality Clusters", page_icon="🌤️", layout="wide")
+st.set_page_config(page_title="Machine Learning Case Study", page_icon="📊", layout="wide")
 st.markdown("""
 <style>
 .stApp {background: #f4f7fb; color: #14243a;}
@@ -31,8 +32,8 @@ div[data-testid="stMetric"] * {color: #153a59 !important;}
 
 
 @st.cache_resource
-def load_model():
-    path = ROOT / "models" / "clustering_model.joblib"
+def load_model(name):
+    path = ROOT / "models" / name
     if not path.exists():
         return None
     return joblib.load(path)
@@ -50,22 +51,142 @@ def load_tables():
     return {name: pd.read_csv(path) if path.exists() else None for name, path in paths.items()}
 
 
-st.markdown("""<div class="hero"><h1>Beijing Air Quality Clusters</h1>
-<p>Explore environmental patterns across 12 monitoring stations, then assign a new reading to a K-Means cluster.</p></div>""", unsafe_allow_html=True)
-artifact = load_model()
+st.markdown("""<div class="hero"><h1>Machine Learning Case Study</h1>
+<p>Predict building energy use, classify water quality, and explore Beijing air-quality clusters.</p></div>""", unsafe_allow_html=True)
+artifact = load_model("clustering_model.joblib")
+regression = load_model("regression_gui_model.joblib")
+classification = load_model("classification_model.joblib")
 tables = load_tables()
-if artifact is None:
-    st.error("Trained model not found. Run notebooks/clustering.ipynb from top to bottom first.")
-    st.stop()
-
+regression_metrics_path = ROOT / "results" / "regression_gui_metrics.csv"
+regression_metrics = pd.read_csv(regression_metrics_path) if regression_metrics_path.exists() else None
+classification_path = ROOT / "results" / "classification_comparison.csv"
+classification_results = pd.read_csv(classification_path) if classification_path.exists() else None
 comparison = tables["comparison"]
-if comparison is not None:
-    cols = st.columns(3)
-    cols[0].metric("K-Means clusters", int(comparison.loc[0, "Clusters"]))
-    cols[1].metric("Evaluation readings", int(comparison.loc[0, "Evaluation Rows"]))
-    cols[2].metric("K-Means silhouette", f"{comparison.loc[0, 'Silhouette Score']:.3f}")
+cols = st.columns(3)
+cols[0].metric("Regression test R²", f"{regression_metrics.iloc[0]['R2']:.3f}" if regression_metrics is not None else "—")
+cols[1].metric("Classification weighted F1", f"{classification_results.iloc[0]['Weighted F1']:.3f}" if classification_results is not None else "—")
+cols[2].metric("K-Means silhouette", f"{comparison.iloc[0]['Silhouette Score']:.3f}" if comparison is not None else "—")
 
-predict_tab, explore_tab, methods_tab = st.tabs(["Predict a cluster", "Explore results", "Method and limits"])
+regression_tab, classification_tab, predict_tab, explore_tab, methods_tab = st.tabs([
+    "Regression", "Classification", "Clustering", "Clustering results", "Methods and limits"
+])
+
+with regression_tab:
+    st.subheader("Predict building Site Energy Use Intensity")
+    st.caption("This app uses a separately fitted Random Forest with 12 form-friendly predictors from the Review 1 building dataset.")
+    if regression is None:
+        st.error("Regression model missing. Run `python -m src.regression` from the project folder.")
+    else:
+        defaults = regression["defaults"]
+        categories = regression["categories"]
+        modes = regression["modes"]
+        with st.form("regression_form"):
+            st.markdown("**Building**")
+            c1, c2, c3 = st.columns(3)
+            values = {}
+            with c1:
+                values["floor_area"] = st.number_input("Floor area", min_value=1.0, value=float(round(defaults["floor_area"], 1)))
+                values["year_built"] = st.number_input("Year built", min_value=1700.0, max_value=2026.0, value=float(round(defaults["year_built"])))
+            with c2:
+                values["energy_star_rating"] = st.number_input("ENERGY STAR rating", min_value=0.0, max_value=100.0, value=float(round(defaults["energy_star_rating"], 1)))
+                values["ELEVATION"] = st.number_input("Elevation", value=float(round(defaults["ELEVATION"], 1)))
+            with c3:
+                for field, label in [("State_Factor", "State category"), ("building_class", "Building class"), ("facility_type", "Facility type")]:
+                    choices = categories[field]
+                    values[field] = st.selectbox(label, choices, index=choices.index(modes[field]))
+            st.markdown("**Annual weather**")
+            w1, w2, w3 = st.columns(3)
+            weather_fields = [
+                ("avg_temp", "Average temperature"),
+                ("cooling_degree_days", "Cooling degree days"),
+                ("heating_degree_days", "Heating degree days"),
+                ("precipitation_inches", "Precipitation (inches)"),
+                ("snowfall_inches", "Snowfall (inches)"),
+            ]
+            for i, (field, label) in enumerate(weather_fields):
+                with (w1, w2, w3)[i % 3]:
+                    values[field] = st.number_input(
+                        label, value=float(round(defaults[field], 2)),
+                        min_value=0.0 if field != "avg_temp" else None,
+                    )
+            predict_regression = st.form_submit_button("Predict energy use", type="primary")
+        if predict_regression:
+            row = pd.DataFrame([values], columns=regression["features"])
+            prediction = float(regression["model"].predict(row)[0])
+            st.success(f"Predicted Site EUI: {prediction:.2f}")
+            st.caption("This estimate is not a building audit or efficiency certification.")
+        if regression_metrics is not None:
+            m = regression_metrics.iloc[0]
+            st.info(f"Held-out evaluation: R² {m['R2']:.3f} · RMSE {m['RMSE']:.2f} · MAE {m['MAE']:.2f} · {int(m['Test Rows']):,} test buildings")
+
+with classification_tab:
+    st.subheader("Predict a water-quality class")
+    st.caption("Enter the measurements you have. Blank fields use the median imputer fitted on training data. The model predicts one of the dataset's Good, Moderate, or Poor labels.")
+    if classification is None:
+        st.error("Classification model missing. Run the Review 2 classification notebook first.")
+    else:
+        date_features = {"sample_year", "sample_month", "sample_dayofyear", "month_sin", "month_cos"}
+        measurement_fields = [f for f in classification["features"] if f not in date_features]
+        primary_fields = [
+            "pH", "temperature", "dissolved_oxygen", "electrical_conductance",
+            "nitrate_nitrogen", "total_phosphorus", "oxygen_saturation", "Depth",
+        ]
+        other_fields = [f for f in measurement_fields if f not in primary_fields]
+        with st.form("classification_form"):
+            sample_date = st.date_input("Sample date", value=date(2015, 10, 16))
+            st.markdown("**Common measurements**")
+            entered = {}
+            input_cols = st.columns(3)
+            for i, field in enumerate(primary_fields):
+                with input_cols[i % 3]:
+                    entered[field] = st.text_input(field, placeholder="Leave blank if unknown")
+            with st.expander("Additional measurements"):
+                more_cols = st.columns(3)
+                for i, field in enumerate(other_fields):
+                    with more_cols[i % 3]:
+                        entered[field] = st.text_input(field, placeholder="Optional")
+            predict_classification = st.form_submit_button("Predict water quality", type="primary")
+        if predict_classification:
+            values, invalid = {}, []
+            for field in measurement_fields:
+                raw_value = entered[field].strip()
+                if not raw_value:
+                    values[field] = np.nan
+                else:
+                    try:
+                        numeric_value = float(raw_value)
+                        if not np.isfinite(numeric_value):
+                            raise ValueError
+                        values[field] = numeric_value
+                    except ValueError:
+                        invalid.append(field)
+            if invalid:
+                st.error("Enter valid numbers for: " + ", ".join(invalid))
+            elif all(pd.isna(values[field]) for field in measurement_fields):
+                st.error("Enter at least one water measurement before predicting.")
+            else:
+                month = sample_date.month
+                values.update({
+                    "sample_year": sample_date.year,
+                    "sample_month": month,
+                    "sample_dayofyear": sample_date.timetuple().tm_yday,
+                    "month_sin": np.sin(2 * np.pi * month / 12),
+                    "month_cos": np.cos(2 * np.pi * month / 12),
+                })
+                row = pd.DataFrame([values], columns=classification["features"])
+                probabilities = classification["model"].predict_proba(row)[0]
+                predicted_class = classification["class_names"][int(np.argmax(probabilities))]
+                st.success(f"Predicted class: {predicted_class}")
+                st.caption(f"{sum(pd.notna(values[f]) for f in measurement_fields)} measurements supplied; remaining fields were imputed. This is a model estimate, not a laboratory certification.")
+                probability_table = pd.DataFrame({
+                    "Class": classification["class_names"],
+                    "Model probability": probabilities,
+                })
+                st.dataframe(probability_table.style.format({"Model probability": "{:.1%}"}),
+                             width="stretch", hide_index=True)
+        if classification_results is not None:
+            with st.expander("All ten classifier results"):
+                st.dataframe(classification_results.round(4), width="stretch", hide_index=True)
 
 with predict_tab:
     st.subheader("Enter one hourly observation")
@@ -123,7 +244,11 @@ with explore_tab:
         st.caption("PCA is a 2D projection for display; clustering uses all 17 engineered features.")
 
 with methods_tab:
-    st.subheader("How the assignment is made")
+    st.subheader("Regression")
+    st.write("A Random Forest is fitted on 80% of the supplied building dataset using the 12 fields available in the form. Missing numerical values are median-imputed and categorical values are encoded using the training data only. The displayed R², RMSE, and MAE come from the remaining 20% test split.")
+    st.subheader("Classification")
+    st.write("The selected Random Forest is fitted on a stratified 12,000-row sample of labeled water-quality data. Its imputer handles measurements left blank in the form. Class probabilities are model outputs, and the comparison table reports scores on a common held-out test set.")
+    st.subheader("Clustering")
     st.write("Pollutant concentrations are log transformed; hour, month and wind direction are represented cyclically. Missing values are filled with medians learned from the dataset, then all features are standardized before K-Means predicts the nearest cluster centre.")
     if tables["linkages"] is not None:
         st.markdown("**Hierarchical linkage comparison**")
