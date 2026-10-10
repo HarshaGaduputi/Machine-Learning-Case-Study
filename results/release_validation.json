@@ -1,0 +1,372 @@
+{
+  "status": "Internal study validation only; no external population has been evaluated.",
+  "regression": {
+    "model_id": "2fc45529159e",
+    "numeric_inputs_required": 8,
+    "training_rows_meeting_gate": 59616,
+    "training_rows": 60605,
+    "interval": {
+      "nominal_coverage": 0.9,
+      "radius": 46.34914073243536,
+      "calibration_rows": 7446,
+      "evaluation_rows": 7461,
+      "observed_coverage": 0.9120761292052004,
+      "evaluation_mae": 19.8279962472524
+    },
+    "group_mae": [
+      {
+        "group": "Commercial",
+        "rows": 3080,
+        "mae": 24.39497768495343
+      },
+      {
+        "group": "Residential",
+        "rows": 4381,
+        "mae": 16.617244631612323
+      }
+    ],
+    "bounds": {
+      "floor_area": {
+        "min": 943.0,
+        "p01": 13700.56,
+        "p99": 1205485.24,
+        "max": 6385382.0
+      },
+      "year_built": {
+        "min": 0.0,
+        "p01": 1895.3600000000001,
+        "p99": 2013.0,
+        "max": 2015.0
+      },
+      "energy_star_rating": {
+        "min": 1.0,
+        "p01": 1.0,
+        "p99": 100.0,
+        "max": 100.0
+      },
+      "ELEVATION": {
+        "min": -6.4,
+        "p01": 2.4,
+        "p99": 232.6,
+        "max": 1924.5
+      },
+      "avg_temp": {
+        "min": 44.51232877,
+        "p01": 49.8,
+        "p99": 63.39863014,
+        "max": 77.24520548
+      },
+      "cooling_degree_days": {
+        "min": 0.0,
+        "p01": 142.0,
+        "p99": 1581.0,
+        "max": 4948.0
+      },
+      "heating_degree_days": {
+        "min": 398.0,
+        "p01": 1477.0,
+        "p99": 6226.0,
+        "max": 7929.0
+      },
+      "precipitation_inches": {
+        "min": 0.0,
+        "p01": 4.16,
+        "p99": 72.81,
+        "max": 107.69
+      },
+      "snowfall_inches": {
+        "min": 0.0,
+        "p01": 0.0,
+        "p99": 50.0,
+        "max": 127.3
+      }
+    }
+  },
+  "classification": {
+    "model_id": "143ac634ef10",
+    "base_model_id": "ace65f3c1d9e",
+    "measured_fields_required": 12,
+    "measured_fields_total": 24,
+    "gate_targets": {
+      "accuracy": 0.9,
+      "poor_recall": 0.83
+    },
+    "calibration_rows": 12000,
+    "gate_validation": {
+      "rows": 11109,
+      "accuracy": 0.9039517508326582,
+      "recall": {
+        "Good": 0.8576544315129812,
+        "Moderate": 0.9375902918231724,
+        "Poor": 0.8376856118791602
+      }
+    },
+    "gate_validation_total": 30298,
+    "held_out": {
+      "rows": 13575,
+      "accuracy": 0.8911233885819522,
+      "recall": {
+        "Good": 0.8596995845317993,
+        "Moderate": 0.9265393855101782,
+        "Poor": 0.819471817106819
+      }
+    },
+    "held_out_eligible": {
+      "rows": 4992,
+      "accuracy": 0.9016426282051282,
+      "recall": {
+        "Good": 0.8584521384928717,
+        "Moderate": 0.934227330779055,
+        "Poor": 0.8337129840546698
+      }
+    },
+    "held_out_eligible_rows": 4992,
+    "held_out_rows": 13575,
+    "held_out_multiclass_brier": 0.15614183142601046,
+    "base_held_out_multiclass_brier": 0.19285953253303098,
+    "temporal_stress": {
+      "training_years": "2010\u20132019",
+      "evaluation_years": "2020\u20132024",
+      "training_rows": 12000,
+      "rows": 15070,
+      "accuracy": 0.8524220305242203,
+      "recall": {
+        "Good": 0.7211753433407857,
+        "Moderate": 0.9474787713596813,
+        "Poor": 0.6458333333333334
+      },
+      "note": "Separate model refit with the saved feature list; same source file, not external validation."
+    },
+    "bounds": {
+      "Depth": {
+        "min": 0.0,
+        "p01": 0.0,
+        "p99": 15.0,
+        "max": 500.0
+      },
+      "total_phosphorus": {
+        "min": 0.0,
+        "p01": 0.001,
+        "p99": 5.553050900000017,
+        "max": 20048.0
+      },
+      "pH": {
+        "min": 2.0,
+        "p01": 5.1791,
+        "p99": 8.94,
+        "max": 7684.0
+      },
+      "temperature": {
+        "min": -1.2,
+        "p01": 0.1,
+        "p99": 33.0,
+        "max": 1785.0
+      },
+      "electrical_conductance": {
+        "min": 0.0,
+        "p01": 0.665,
+        "p99": 51100.0,
+        "max": 319571.0
+      },
+      "nitrate_nitrogen": {
+        "min": 0.0,
+        "p01": 0.000902936,
+        "p99": 20.987635805784013,
+        "max": 6595.496012
+      },
+      "dissolved_oxygen": {
+        "min": 0.0,
+        "p01": 0.98,
+        "p99": 14.8,
+        "max": 884.0
+      },
+      "nitrite_nitrogen": {
+        "min": 0.0,
+        "p01": 0.0,
+        "p99": 0.9818683999999995,
+        "max": 360.060918
+      },
+      "oxygen_saturation": {
+        "min": 0.0,
+        "p01": 5.7,
+        "p99": 144.0,
+        "max": 1487.0
+      },
+      "hardness": {
+        "min": 0.01666667,
+        "p01": 5.8586,
+        "p99": 1002.9924999999957,
+        "max": 25903.8
+      },
+      "biochemical_oxygen_demand": {
+        "min": 0.0,
+        "p01": 0.2,
+        "p99": 95.49700000000051,
+        "max": 15000.0
+      },
+      "total_suspended_solids": {
+        "min": 0.0,
+        "p01": 0.5,
+        "p99": 495.48800000000176,
+        "max": 12440.0
+      },
+      "bicarbonate": {
+        "min": 0.0,
+        "p01": 3.66,
+        "p99": 510.00881999999996,
+        "max": 162300.0
+      },
+      "dissolved_organic_carbon": {
+        "min": 0.0,
+        "p01": 0.088,
+        "p99": 40.624300000000005,
+        "max": 3000.0
+      },
+      "chloride": {
+        "min": 0.01,
+        "p01": 0.45,
+        "p99": 1051.7049999999908,
+        "max": 167076.0
+      },
+      "total_organic_carbon": {
+        "min": 0.0,
+        "p01": 0.088,
+        "p99": 82.03115999999987,
+        "max": 2498.24
+      },
+      "chemical_oxygen_demand": {
+        "min": 0.0,
+        "p01": 2.9260000000000006,
+        "p99": 505.02459999999854,
+        "max": 172200.0
+      },
+      "cadmium": {
+        "min": 0.0,
+        "p01": 2e-06,
+        "p99": 0.004359899999999997,
+        "max": 170.0
+      },
+      "lead": {
+        "min": 5e-06,
+        "p01": 1.1e-05,
+        "p99": 0.032615999999999624,
+        "max": 2000.0
+      },
+      "chromium": {
+        "min": 0.0,
+        "p01": 4.5838000000000004e-05,
+        "p99": 0.06410499999999975,
+        "max": 5000.0
+      },
+      "total_dissolved_solids": {
+        "min": 0.0,
+        "p01": 4.0,
+        "p99": 47760.0,
+        "max": 255656.8
+      },
+      "ammonium_nitrogen": {
+        "min": 0.0,
+        "p01": 0.0,
+        "p99": 8.111231999999786,
+        "max": 3649.503
+      },
+      "oxidized_nitrogen": {
+        "min": 0.0,
+        "p01": 0.0,
+        "p99": 21.09,
+        "max": 355.014
+      },
+      "nickel": {
+        "min": 1e-06,
+        "p01": 8e-05,
+        "p99": 0.051234000000000196,
+        "max": 18800.0
+      }
+    },
+    "sample_year_bounds": {
+      "min": 1906.0,
+      "p01": 1975.0,
+      "p99": 2023.0,
+      "max": 2024.0
+    },
+    "provenance": "Instructor-supplied file; original measurement units and label rules are undocumented."
+  },
+  "clustering": {
+    "model_id": "4f8a9ee87764",
+    "minimum_pollutants": 4,
+    "minimum_weather": 3,
+    "minimum_time_fields": 2,
+    "masked_assignment_agreement": 0.9189583333333333,
+    "mask_trials": 8,
+    "reference_rows": 3000,
+    "distance_p99": 4.8285307455282815,
+    "bounds": {
+      "PM2.5": {
+        "min": 3.0,
+        "p01": 3.0,
+        "p99": 376.0,
+        "max": 563.0
+      },
+      "PM10": {
+        "min": 3.0,
+        "p01": 5.0,
+        "p99": 440.09999999999764,
+        "max": 890.0
+      },
+      "SO2": {
+        "min": 1.0,
+        "p01": 1.0,
+        "p99": 98.00999999999976,
+        "max": 234.0
+      },
+      "NO2": {
+        "min": 2.0,
+        "p01": 2.0,
+        "p99": 152.00332599999993,
+        "max": 203.0
+      },
+      "CO": {
+        "min": 100.0,
+        "p01": 100.0,
+        "p99": 6000.0,
+        "max": 10000.0
+      },
+      "O3": {
+        "min": 0.6426,
+        "p01": 1.0,
+        "p99": 243.00999999999976,
+        "max": 367.0
+      },
+      "TEMP": {
+        "min": -15.0,
+        "p01": -7.901,
+        "p99": 33.9,
+        "max": 39.0
+      },
+      "PRES": {
+        "min": 985.0,
+        "p01": 990.6,
+        "p99": 1032.6,
+        "max": 1040.1
+      },
+      "DEWP": {
+        "min": -32.3,
+        "p01": -25.003999999999998,
+        "p99": 24.5,
+        "max": 28.3
+      },
+      "RAIN": {
+        "min": 0.0,
+        "p01": 0.0,
+        "p99": 1.5,
+        "max": 20.4
+      },
+      "WSPM": {
+        "min": 0.0,
+        "p01": 0.0,
+        "p99": 5.900999999999977,
+        "max": 7.8
+      }
+    }
+  }
+}

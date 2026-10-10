@@ -45,7 +45,7 @@ For the GUI, `src/regression.py` fits a separate Random Forest on 12 practical b
 
 ## Setup
 
-Use Python 3.11–3.13. The Review 2 notebooks and GUI were verified with Python 3.13, scikit-learn 1.7.2, pandas 3.0.6, Streamlit 1.51.0, and the version ranges in `requirements.txt`.
+Use Python 3.13. The Review 2 notebooks and GUI were verified with Python 3.13.9 and the exact direct-dependency versions in `requirements.txt`.
 
 ```bash
 cd review2_case_study
@@ -65,9 +65,11 @@ Both Review 2 notebooks have already been executed from a clean kernel and saved
 ```bash
 python -m src.regression
 python -m src.app_diagnostics
+python -m src.release_validation
+python -m src.smoke_check
 ```
 
-The second command rebuilds the GUI's held-out regression and classification charts from the saved models and original datasets. Run it again after refitting either model. The clustering notebook saves the PCA projection used to place a new reading on the historical scatterplot.
+The second command rebuilds the GUI's held-out regression and classification charts from the saved models and original datasets. The third command calibrates the saved water classifier on previously unused training-partition records, selects an input-completeness gate on a separate subset, checks the original held-out partition, builds a regression error interval, checks cluster assignment stability under masked inputs, and saves `results/release_validation.json`. The final command verifies the model fingerprints and runs one real source example through each task. Run both diagnostic commands and the smoke check after refitting any affected model. The clustering notebook saves the PCA projection used to place a new reading on the historical scatterplot.
 
 Then start the GUI:
 
@@ -75,15 +77,21 @@ Then start the GUI:
 python -m streamlit run app/streamlit_app.py
 ```
 
-Open the local URL printed by Streamlit. The GUI has three prediction views and one study-results view, selected from a persistent task switcher. Inputs start blank instead of silently displaying dataset medians. Unknown optional values are explicitly handled by each fitted model's imputer. Each predictor also has a switch that starts the form with an actual row from its supplied dataset; you can edit that row before predicting.
+Open the local URL printed by Streamlit. The GUI has three prediction views and one study-results view. Inputs start blank instead of silently displaying dataset medians. Each predictor has a switch that starts the form with an actual row from its supplied dataset; you can edit that row before predicting. Unsupported inputs receive an explanation instead of a prediction. Accepted results include their model version, entered inputs, imputed fields, and limitations in a downloadable JSON record. The app does not save submitted input records server-side.
 
-1. **Regression:** enter floor area and facility use. Building class is derived from real facility/class combinations in the source data. Year built, rating, anonymized region code, elevation, and weather can be entered when known. The output is Site EUI in kBtu/ft²/year, with held-out comparison charts. Inputs outside the source data's observed range are flagged.
-2. **Classification:** enter a sample date and available water measurements to predict `Good`, `Moderate`, or `Poor`. Unknown measurements can stay blank and are handled by the fitted imputer. The app validates numeric measurements, shows observed 1st–99th percentile ranges as entry guidance, and displays model probabilities plus the held-out confusion matrix. The supplied water file does not document measurement units; enter values in its original scale. The observed ranges are not safety limits.
-3. **Clustering:** enter measured pollutant concentrations. Weather, month, hour, and wind direction are optional. Units follow the Beijing source dataset. The result shows a K-Means cluster, the reading projected among real historical observations, and entered pollutant measurements compared with cluster averages.
+1. **Regression:** enter floor area, facility use, and at least eight of nine numeric building/weather fields. Building class is derived from source combinations. The output is Site EUI in kBtu/ft²/year with an empirical 90% internal error range and held-out charts. The interval radius is 46.35; 91.2% of 7,461 eligible held-out buildings were inside it. Input values beyond observed source minima/maxima are withheld.
+2. **Classification:** enter a sample date and at least 12 of 24 measured water fields. The gate was chosen on previously unused training-partition records, where accuracy met 90% and Poor-label recall met 83%. On 4,992 eligible records in the original random held-out partition, accuracy was 90.2% and Poor recall 83.4%. Probabilities are calibrated using a separate 12,000-record subset and displayed alongside the held-out confusion matrix and reliability plot. A separate same-file time-split stress test trained on 12,000 records from 2010–2019 and evaluated on 15,070 records from 2020–2024: accuracy was **85.2% and Poor-label recall 64.6%**. The supplied water file does not document measurement units or label rules. Input guidance ranges are observed data quantiles, not safety limits.
+3. **Clustering:** enter at least four measured pollutants, three weather readings, and two time/wind fields. Units follow the [UCI Beijing dataset](https://archive.ics.uci.edu/dataset/501/beijing). With that mask pattern, assignment matched the same complete historical reading in 91.9% of trials on 3,000 station records; this checks stability, not accuracy. Inputs outside observed ranges or beyond the historical 99th-percentile distance to a cluster centre are withheld. The result shows the K-Means cluster, the new reading projected among real historical observations, and entered pollutant readings compared with cluster averages.
 
 The new input's true building EUI or water-quality class is unknown, so it is never shown as a measured outcome in the test charts. The clustering projection is a display of the entered reading; it is not a known air-quality label. Every historical plotted value comes from the supplied datasets and fitted models.
 
-The **Study results** view contains the regression test metrics, consolidated ten-classifier table, clustering comparison, elbow curve, PCA scatterplot, linkage comparison, and method limits. No public deployment is included.
+The **Study results** view contains the internal reliability checks, regression test metrics, consolidated ten-classifier table, clustering comparison, elbow curve, PCA scatterplot, linkage comparison, and method limits. No public deployment is included.
+
+### Public-release status
+
+This is a polished **research demonstration**, not a validated operational service. Before presenting it as a real-world predictor, obtain and document the water file's original source, measurement units, label construction rules, intended water use, and redistribution rights; verify the building dataset's public redistribution terms; and test each model on new representative data from the intended users. A random held-out split and masked-input stability check do not establish transport to a new site, year, or sampling method. The water time-split stress test also shows materially worse Poor-label recall. Do not market its class or probability as a drinking-water safety decision. The air clusters are patterns, not official AQI categories.
+
+For hosting, choose Python 3.13, install `requirements.txt`, run `python -m streamlit run app/streamlit_app.py`, and keep the `models/`, `results/`, and source `data/` paths available. Use HTTPS and a hosting environment with enough memory for the bundled models and tables. Check startup, example predictions, input refusal messages, and downloads after each model/data update; regenerate release evidence whenever a model changes. The [Beijing source](https://archive.ics.uci.edu/dataset/501/beijing) is CC BY 4.0 and requires attribution.
 
 ### Interface references
 
@@ -96,7 +104,7 @@ data/           Original supplied CSVs by track
 notebooks/      Review 1 notebooks and fully executed Review 2 notebooks
 src/            Shared, modular feature engineering, fitting, evaluation, and exports
 models/         Fitted models used by the GUI
-results/        Tables and PCA points exported by the notebooks
+results/        Tables, PCA points, and internal release evidence
 app/            Streamlit GUI
 requirements.txt
 ```
