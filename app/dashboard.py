@@ -24,6 +24,13 @@ ROOT = Path(__file__).resolve().parents[1]
 TEAL = "#126c70"
 INK = "#142b35"
 CORAL = "#d76c53"
+TASK_VIEWS = {
+    "regression": "Regression",
+    "classification": "Classification",
+    "clustering": "Clustering",
+    "results": "Study results",
+}
+VIEW_TASKS = {view: task for task, view in TASK_VIEWS.items()}
 
 DATE_FEATURES = {"sample_year", "sample_month", "sample_dayofyear", "month_sin", "month_cos"}
 COMMON_WATER = [
@@ -141,6 +148,19 @@ def download_result(record: str, task: str) -> None:
         mime="application/json", on_click="ignore", icon=":material/download:",
         key=f"download_{task}",
     )
+
+
+def sync_view_query() -> None:
+    """Keep the task switcher and hero selector on the same prediction view."""
+    st.query_params["task"] = VIEW_TASKS[st.session_state["current_view"]]
+
+
+def select_hero_task() -> None:
+    """Open a prediction view when its hero pill is selected."""
+    task = st.session_state["hero_task"]
+    if task in TASK_VIEWS:
+        st.session_state["current_view"] = TASK_VIEWS[task]
+        st.query_params["task"] = task
 
 
 @st.cache_data
@@ -755,6 +775,11 @@ def results_tab(tables: dict, evidence: dict | None) -> None:
 def main() -> None:
     st.set_page_config(page_title="Fieldnote | Applied ML", page_icon="◉", layout="wide",
                        initial_sidebar_state="collapsed")
+    requested_task = st.query_params.get("task")
+    if requested_task in TASK_VIEWS:
+        st.session_state["current_view"] = TASK_VIEWS[requested_task]
+    elif "current_view" not in st.session_state:
+        st.session_state["current_view"] = "Regression"
     st.markdown("""
     <style>
       :root {--ink:#142b35; --muted:#667b80; --teal:#126c70; --line:#dce6e4; --paper:#f5f8f6;}
@@ -777,9 +802,15 @@ def main() -> None:
       .hero h1 {font-size:clamp(2.75rem,5vw,4.6rem); line-height:1.06; letter-spacing:-.065em;
         margin:.65rem 0 1.05rem; font-weight:760;}
       .hero p {font-size:1.13rem; color:#586e73; line-height:1.6; max-width:720px; margin:0;}
-      .model-strip {display:flex; flex-wrap:wrap; gap:.55rem; margin-top:1.55rem;}
-      .model-strip span {padding:.42rem .72rem; border:1px solid var(--line); background:#fff; border-radius:999px;
-        color:#426269; font-size:.73rem; font-weight:720; letter-spacing:.03em;}
+      div[data-testid="stPills"] {margin-top:1.3rem; margin-bottom:.3rem;}
+      div[data-testid="stPills"] button {min-height:2.25rem; padding:.42rem .72rem;
+        border:1px solid var(--line); background:#fff; border-radius:999px;
+        color:#426269; font-size:.73rem; font-weight:720; letter-spacing:.03em;
+        transition:background .15s ease,border-color .15s ease,transform .15s ease;}
+      div[data-testid="stPills"] button:hover {background:#e9f3f0; border-color:#8fbdb6; transform:translateY(-1px);}
+      div[data-testid="stPills"] button:focus-visible {outline:3px solid #7ac2b8; outline-offset:3px;}
+      div[data-testid="stPills"] button[data-testid="stBaseButton-pillsActive"]
+        {background:#dfeeea; border-color:#7db8ae; color:#125e62;}
       .page-heading {padding:2.65rem 0 1.2rem;}
       .page-heading h2 {font-size:clamp(2rem,3.1vw,2.9rem); line-height:1.12; margin:.6rem 0 .75rem;}
       .page-heading p {font-size:1rem; color:#61777c; max-width:690px; margin:0;}
@@ -825,13 +856,23 @@ def main() -> None:
       <div class="hero"><div class="hero-kicker">CASE STUDY / INTERACTIVE LAB</div>
       <h1>Models made<br>understandable.</h1>
       <p>Explore three distinct prediction tasks with real source data, visible model evidence,
-      and clear boundaries around what each result means.</p>
-      <div class="model-strip"><span>01 · BUILDING ENERGY</span><span>02 · WATER LABELS</span>
-      <span>03 · AIR PATTERNS</span></div></div>''', unsafe_allow_html=True)
+      and clear boundaries around what each result means.</p></div>''', unsafe_allow_html=True)
+    st.session_state["hero_task"] = VIEW_TASKS.get(st.session_state["current_view"])
+    st.pills(
+        "Prediction pages", ["regression", "classification", "clustering"],
+        format_func=lambda task: {
+            "regression": "01 · BUILDING ENERGY",
+            "classification": "02 · WATER LABELS",
+            "clustering": "03 · AIR PATTERNS",
+        }[task],
+        key="hero_task", on_change=select_hero_task,
+        label_visibility="collapsed",
+    )
 
     view = st.segmented_control(
         "Prediction task", ["Regression", "Classification", "Clustering", "Study results"],
-        default="Regression", key="current_view", label_visibility="collapsed", width="stretch",
+        key="current_view", on_change=sync_view_query,
+        label_visibility="collapsed", width="stretch",
     )
     result_files = sorted((ROOT / "results").glob("*.csv"))
     tables = load_tables(tuple(path.stat().st_mtime_ns for path in result_files))
