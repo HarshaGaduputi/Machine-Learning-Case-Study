@@ -5,3 +5,15 @@ backgroundColor = "#fbfcfa"
 secondaryBackgroundColor = "#ffffff"
 textColor = "#18313c"
 font = "sans serif"
+
+[client]
+toolbarMode = "viewer"
+showErrorDetails = "none"
+showErrorLinks = false
+
+[server]
+enableCORS = true
+enableXsrfProtection = true
+enableStaticServing = false
+maxUploadSize = 1
+maxMessageSize = 20

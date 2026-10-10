@@ -9,8 +9,10 @@ from pathlib import Path
 import numpy as np
 
 from src.prediction_policy import (
-    classification_issues, clustering_issues, regression_issues, result_record,
+    classification_issues, clustering_issues, outside_observed,
+    regression_issues, result_record,
 )
+from app.dashboard import parse_water
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = json.loads((ROOT / "results/release_validation.json").read_text())
@@ -49,6 +51,23 @@ class PredictionPolicyTests(unittest.TestCase):
         self.assertTrue(any("pollutant" in issue for issue in clustering_issues(values, evidence, 2.0)))
         values["NO2"] = evidence["bounds"]["NO2"]["p01"]
         self.assertTrue(any("cluster centres" in issue for issue in clustering_issues(values, evidence, 100.0)))
+
+    def test_air_checks_input_before_model_distance(self):
+        evidence = EVIDENCE["clustering"]
+        values = {
+            **{name: evidence["bounds"][name]["p01"] for name in
+               ["PM2.5", "PM10", "SO2", "NO2", "TEMP", "PRES", "DEWP"]},
+            "month": 3, "hour": 12,
+        }
+        self.assertEqual(clustering_issues(values, evidence), [])
+        values["PM2.5"] = float("inf")
+        self.assertIn("PM2.5", outside_observed(values, evidence["bounds"]))
+        self.assertTrue(clustering_issues(values, evidence))
+
+    def test_water_parser_rejects_oversized_value(self):
+        values, errors = parse_water({"pH": "1" * 33})
+        self.assertEqual(values, {})
+        self.assertEqual(errors, ["pH"])
 
     def test_download_record_is_versioned_and_valid_json(self):
         record = json.loads(result_record(

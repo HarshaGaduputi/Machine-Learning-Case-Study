@@ -379,6 +379,9 @@ def regression_tab(model: dict | None, tables: dict, evidence: dict | None) -> N
 def parse_water(entered: dict[str, str]) -> tuple[dict, list[str]]:
     values, errors = {}, []
     for field, raw in entered.items():
+        if not isinstance(raw, str) or len(raw) > 32:
+            errors.append(WATER_LABELS.get(field, pretty_name(field)))
+            continue
         if not raw.strip():
             values[field] = np.nan
             continue
@@ -436,7 +439,7 @@ def classification_tab(model: dict | None, calibrated, tables: dict, evidence: d
             with columns[index % 2]:
                 entered[field] = st.text_input(
                     WATER_LABELS.get(field, pretty_name(field)), value=source_text(example, field),
-                    placeholder="Leave blank if unknown", key=f"water_{mode}_{field}",
+                    placeholder="Leave blank if unknown", max_chars=32, key=f"water_{mode}_{field}",
                     help=(f"Model field: {field}. Observed 1st–99th percentile in the supplied data: "
                           f"{ranges[field][0]:.3g}–{ranges[field][1]:.3g}. These are not safety limits."),
                 )
@@ -446,7 +449,7 @@ def classification_tab(model: dict | None, calibrated, tables: dict, evidence: d
                 with more_columns[index % 2]:
                     entered[field] = st.text_input(
                         WATER_LABELS.get(field, pretty_name(field)), value=source_text(example, field),
-                        placeholder="Leave blank if unknown", key=f"water_{mode}_{field}",
+                        placeholder="Leave blank if unknown", max_chars=32, key=f"water_{mode}_{field}",
                         help=(f"Model field: {field}. Observed 1st–99th percentile in the supplied data: "
                               f"{ranges[field][0]:.3g}–{ranges[field][1]:.3g}. These are not safety limits."),
                     )
@@ -603,6 +606,8 @@ def clustering_tab(model: dict | None, tables: dict, evidence: dict | None) -> N
         submitted = st.form_submit_button("Find matching cluster", type="primary")
 
     if not submitted:
+        return
+    if show_issues(clustering_issues(values, evidence)):
         return
     provided_pollutants = [name for name in POLLUTANTS if values[name] is not None]
     reading = pd.DataFrame([values])
@@ -880,21 +885,27 @@ def main() -> None:
     evidence = load_evidence(evidence_path.stat().st_mtime_ns if evidence_path.exists() else 0)
     if view == "Regression":
         relevant = evidence["regression"] if evidence else None
-        if relevant and not matching_model("regression_gui_model.joblib", relevant["model_id"]):
+        if not relevant:
+            st.error("Release evidence is missing. Run `python -m src.release_validation` before predicting.")
+        elif not matching_model("regression_gui_model.joblib", relevant["model_id"]):
             st.error("The building model changed after validation. Run `python -m src.release_validation` again.")
         else:
             regression_tab(current_model("regression_gui_model.joblib"), tables, relevant)
     elif view == "Classification":
         relevant = evidence["classification"] if evidence else None
-        if relevant and (not matching_model("classification_model.joblib", relevant["base_model_id"])
-                         or not matching_model("classification_calibrated.joblib", relevant["model_id"])):
+        if not relevant:
+            st.error("Release evidence is missing. Run `python -m src.release_validation` before predicting.")
+        elif (not matching_model("classification_model.joblib", relevant["base_model_id"])
+              or not matching_model("classification_calibrated.joblib", relevant["model_id"])):
             st.error("The water model changed after calibration. Run `python -m src.release_validation` again.")
         else:
             classification_tab(current_model("classification_model.joblib"),
                                current_model("classification_calibrated.joblib"), tables, relevant)
     elif view == "Clustering":
         relevant = evidence["clustering"] if evidence else None
-        if relevant and not matching_model("clustering_model.joblib", relevant["model_id"]):
+        if not relevant:
+            st.error("Release evidence is missing. Run `python -m src.release_validation` before predicting.")
+        elif not matching_model("clustering_model.joblib", relevant["model_id"]):
             st.error("The air model changed after validation. Run `python -m src.release_validation` again.")
         else:
             clustering_tab(current_model("clustering_model.joblib"), tables, relevant)

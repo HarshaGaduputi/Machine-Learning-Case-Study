@@ -18,10 +18,6 @@ from src.release_validation import AIR_TIME_FIELDS, WATER_DATE_FEATURES, fingerp
 def check(root: Path) -> dict:
     root = Path(root)
     evidence = json.loads((root / "results/release_validation.json").read_text(encoding="utf-8"))
-    building = joblib.load(root / "models/regression_gui_model.joblib")
-    water = joblib.load(root / "models/classification_model.joblib")
-    calibrated = joblib.load(root / "models/classification_calibrated.joblib")
-    air = joblib.load(root / "models/clustering_model.joblib")
     for task, name, key in (
         ("regression", "regression_gui_model.joblib", "model_id"),
         ("classification", "classification_model.joblib", "base_model_id"),
@@ -30,6 +26,11 @@ def check(root: Path) -> dict:
     ):
         if fingerprint(root / "models" / name) != evidence[task][key]:
             raise AssertionError(f"Stale release evidence for {name}")
+
+    building = joblib.load(root / "models/regression_gui_model.joblib")
+    water = joblib.load(root / "models/classification_model.joblib")
+    calibrated = joblib.load(root / "models/classification_calibrated.joblib")
+    air = joblib.load(root / "models/clustering_model.joblib")
 
     building_row = pd.read_csv(root / "data/regression/train.csv", usecols=building["features"], nrows=1)
     building_values = building_row.iloc[0].to_dict()

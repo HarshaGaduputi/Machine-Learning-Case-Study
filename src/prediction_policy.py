@@ -14,11 +14,18 @@ def present(value: object) -> bool:
 
 
 def outside_observed(values: dict, bounds: dict) -> list[str]:
-    return [
-        field for field, value in values.items()
-        if field in bounds and present(value)
-        and not bounds[field]["min"] <= float(value) <= bounds[field]["max"]
-    ]
+    outside = []
+    for field, value in values.items():
+        if field not in bounds or not present(value):
+            continue
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError):
+            outside.append(field)
+            continue
+        if not np.isfinite(number) or not bounds[field]["min"] <= number <= bounds[field]["max"]:
+            outside.append(field)
+    return outside
 
 
 def regression_issues(values: dict, evidence: dict, numeric_fields: list[str]) -> list[str]:
@@ -49,7 +56,7 @@ def classification_issues(values: dict, evidence: dict, measured_fields: list[st
     return issues
 
 
-def clustering_issues(values: dict, evidence: dict, distance: float) -> list[str]:
+def clustering_issues(values: dict, evidence: dict, distance: float | None = None) -> list[str]:
     issues = []
     groups = [
         ("pollutant", ["PM2.5", "PM10", "SO2", "NO2", "CO", "O3"], "minimum_pollutants"),
@@ -63,7 +70,7 @@ def clustering_issues(values: dict, evidence: dict, distance: float) -> list[str
     unusual = outside_observed(values, evidence["bounds"])
     if unusual:
         issues.append("Outside the Beijing source data's observed range: " + ", ".join(unusual) + ".")
-    if not np.isfinite(distance) or distance > evidence["distance_p99"]:
+    if distance is not None and (not np.isfinite(distance) or distance > evidence["distance_p99"]):
         issues.append("This combination is unusually far from historical cluster centres. Check the readings and units.")
     return issues
 

@@ -4,6 +4,13 @@
 .cache/
 .pydeps/
 .venv/
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+credentials.json
+*.pem
+*.key
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/

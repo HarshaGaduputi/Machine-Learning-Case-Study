@@ -45,13 +45,13 @@ For the GUI, `src/regression.py` fits a separate Random Forest on 12 practical b
 
 ## Setup
 
-Use Python 3.13. The Review 2 notebooks and GUI were verified with Python 3.13.9 and the exact direct-dependency versions in `requirements.txt`.
+Use Python 3.13. The Review 2 notebooks and original GUI run were verified with Python 3.13.9; the saved models use scikit-learn 1.7.2. `requirements.txt` contains the hardened app runtime; `requirements-dev.txt` adds the notebook and plotting tools. The updated Streamlit and Tornado pins still need a fresh-environment smoke test before public release.
 
 ```bash
 cd review2_case_study
 python -m venv .venv
 source .venv/bin/activate       # Windows: .venv\Scripts\activate
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 python -m jupyter lab
 ```
 
@@ -89,9 +89,9 @@ The **Study results** view contains the internal reliability checks, regression 
 
 ### Public-release status
 
-This is a polished **research demonstration**, not a validated operational service. Before presenting it as a real-world predictor, obtain and document the water file's original source, measurement units, label construction rules, intended water use, and redistribution rights; verify the building dataset's public redistribution terms; and test each model on new representative data from the intended users. A random held-out split and masked-input stability check do not establish transport to a new site, year, or sampling method. The water time-split stress test also shows materially worse Poor-label recall. Do not market its class or probability as a drinking-water safety decision. The air clusters are patterns, not official AQI categories.
+This is a polished **research demonstration**, not a validated operational service. Public deployment is on hold until the fresh-environment dependency and smoke checks pass and the instructor-supplied data can lawfully be redistributed. Before presenting it as a real-world predictor, obtain and document the water file's original source, measurement units, label construction rules, intended water use, and redistribution rights; verify the building dataset's public redistribution terms; and test each model on new representative data from the intended users. A random held-out split and masked-input stability check do not establish transport to a new site, year, or sampling method. The water time-split stress test also shows materially worse Poor-label recall. Do not market its class or probability as a drinking-water safety decision. The air clusters are patterns, not official AQI categories.
 
-For hosting, choose Python 3.13, install `requirements.txt`, run `python -m streamlit run app/streamlit_app.py`, and keep the `models/`, `results/`, and source `data/` paths available. Use HTTPS and a hosting environment with enough memory for the bundled models and tables. Check startup, example predictions, input refusal messages, and downloads after each model/data update; regenerate release evidence whenever a model changes. The [Beijing source](https://archive.ics.uci.edu/dataset/501/beijing) is CC BY 4.0 and requires attribution.
+For Streamlit Community Cloud, push this repository to GitHub, select `app/streamlit_app.py` as the entrypoint, and select Python 3.13 in Advanced settings. The default Python version may differ. The service installs `requirements.txt`; notebook packages are kept in `requirements-dev.txt`. For another Python host, run `python -m streamlit run app/streamlit_app.py` with the `models/`, `results/`, and source `data/` paths available. Use HTTPS and a hosting environment with enough memory for the bundled models and tables. Keep model files from this trusted build under deployment control: `joblib.load` is unsafe for untrusted files. Check startup, example predictions, input refusal messages, and downloads after each model/data update; regenerate release evidence whenever a model changes. The [Beijing source](https://archive.ics.uci.edu/dataset/501/beijing) is CC BY 4.0 and requires attribution. Do not make the repository public until the instructor-supplied building and water files' redistribution rights are confirmed.
 
 ### Interface references
 
@@ -107,6 +107,7 @@ models/         Fitted models used by the GUI
 results/        Tables, PCA points, and internal release evidence
 app/            Streamlit GUI
 requirements.txt
+requirements-dev.txt
 ```
 
 The `src/build_notebooks.py` generator recreates the clean Review 2 notebook source. Running it replaces notebook outputs, so rerun both notebooks afterward.
