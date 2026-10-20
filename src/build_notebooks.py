@@ -261,7 +261,7 @@ classification_cells = [
     markdown("""
     ## 3. Hyperparameter tuning and model selection
 
-    GridSearchCV compares Decision Tree depth and minimum leaf size. The table shows the cross-validation improvement against the untuned baseline, plus both held-out F1 scores. Random Forest and Bagging are specified in advance as the two ensemble finalists for five-fold training cross-validation; the higher mean F1 selects the saved final model. The test metrics remain a description of performance, not a fit input.
+    GridSearchCV compares Decision Tree depth and minimum leaf size. The table shows the cross-validation improvement against an untouched copy of the untuned baseline, plus both held-out F1 scores. All five Review 2 additions—Random Forest, AdaBoost, Gradient Boosting, Bagging, and MLP—receive the same five-fold training cross-validation. The highest mean weighted F1 selects the saved final model. The test metrics remain a description of performance, not a fit input.
     """),
     code("""
     display(result['tuning'].round(4))

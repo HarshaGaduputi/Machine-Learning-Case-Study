@@ -30,6 +30,10 @@ from sklearn.tree import DecisionTreeClassifier
 
 SEED = 42
 TARGET = "Water_Quality_Class"
+REVIEW2_ALGORITHMS = (
+    "Random Forest", "AdaBoost", "Gradient Boosting", "Bagging",
+    "MLP Neural Network",
+)
 
 
 def prepare_data(csv_path: Path) -> tuple[pd.DataFrame, pd.Series, dict]:
@@ -135,7 +139,9 @@ def run_classification(csv_path: Path, train_limit: int = 12000) -> dict:
     ).mean()
     tuned_tree = tree_search.best_estimator_
     tuned_scores, tuned_matrix = evaluate_model(tuned_tree, X_test, y_test_code)
-    baseline_scores = next(row for row in rows if row["Algorithm"] == "Decision Tree")
+    # Copy before replacing the table row; otherwise the update below mutates
+    # the same dictionary and makes the before/after test scores identical.
+    baseline_scores = next(row for row in rows if row["Algorithm"] == "Decision Tree").copy()
     for row in rows:
         if row["Algorithm"] == "Decision Tree":
             row.update(tuned_scores)
@@ -143,12 +149,11 @@ def run_classification(csv_path: Path, train_limit: int = 12000) -> dict:
     matrices["Decision Tree"] = tuned_matrix
     comparison = pd.DataFrame(rows).sort_values("Weighted F1", ascending=False).reset_index(drop=True)
 
-    # Prespecify the two ensemble finalists before consulting test results.
-    # The held-out table is descriptive and cannot nominate a model for CV.
-    top_two = ["Random Forest", "Bagging"]
+    # Select only among the five Review 2 additions, using training CV rather
+    # than the held-out test table. This keeps the test set descriptive.
     cv5 = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
     cv_rows = []
-    for name in top_two:
+    for name in REVIEW2_ALGORITHMS:
         scores = cross_val_score(models[name], X_train, y_train_code,
                                  scoring="f1_weighted", cv=cv5, n_jobs=1)
         cv_rows.append({"Algorithm": name, "Mean 5-Fold Weighted F1": scores.mean(),
@@ -189,3 +194,15 @@ def save_outputs(result: dict, directory: Path) -> None:
         "features": result["feature_columns"],
         "class_names": result["class_names"],
     }, directory / "models" / "classification_model.joblib")
+
+
+if __name__ == "__main__":
+    project_root = Path(__file__).resolve().parents[1]
+    output = run_classification(
+        project_root / "data/classification/water_quality_classification_dataset.csv"
+    )
+    save_outputs(output, project_root)
+    print(output["comparison"].round(4).to_string(index=False))
+    print("\nReview 2 model selection (training-only CV):")
+    print(output["cv_table"].round(4).to_string(index=False))
+    print(f"\nSelected model: {output['final_name']}")

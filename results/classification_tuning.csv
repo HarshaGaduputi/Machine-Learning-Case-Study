@@ -1,2 +1,2 @@
 Algorithm,Baseline 3-Fold F1,Tuned 3-Fold F1,Improvement,Baseline Test F1,Tuned Test F1,Best Parameters
-Decision Tree,0.8318541192020058,0.8372003341856279,0.0053462149836220885,0.844869659017434,0.844869659017434,"{'model__max_depth': 12, 'model__min_samples_leaf': 1}"
+Decision Tree,0.8318541192020058,0.8372003341856279,0.0053462149836220885,0.848409697875717,0.844869659017434,"{'model__max_depth': 12, 'model__min_samples_leaf': 1}"

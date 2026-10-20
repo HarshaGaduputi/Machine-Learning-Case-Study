@@ -64,6 +64,20 @@ class PredictionPolicyTests(unittest.TestCase):
         self.assertIn("PM2.5", outside_observed(values, evidence["bounds"]))
         self.assertTrue(clustering_issues(values, evidence))
 
+    def test_air_uses_distance_limit_matching_input_completeness(self):
+        evidence = dict(EVIDENCE["clustering"])
+        evidence.update({"distance_p99_complete": 4.0, "distance_p99_masked": 6.0})
+        values = {
+            **{name: evidence["bounds"][name]["p01"] for name in
+               ["PM2.5", "PM10", "SO2", "NO2", "CO", "O3",
+                "TEMP", "PRES", "DEWP", "RAIN", "WSPM"]},
+            "month": 3, "hour": 12, "wd": "N",
+        }
+        self.assertTrue(any("cluster centres" in issue
+                            for issue in clustering_issues(values, evidence, 5.0)))
+        values["CO"] = None
+        self.assertEqual(clustering_issues(values, evidence, 5.0), [])
+
     def test_water_parser_rejects_oversized_value(self):
         values, errors = parse_water({"pH": "1" * 33})
         self.assertEqual(values, {})

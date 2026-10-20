@@ -9,7 +9,6 @@ font = "sans serif"
 [client]
 toolbarMode = "viewer"
 showErrorDetails = "none"
-showErrorLinks = false
 
 [server]
 enableCORS = true

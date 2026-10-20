@@ -70,7 +70,15 @@ def clustering_issues(values: dict, evidence: dict, distance: float | None = Non
     unusual = outside_observed(values, evidence["bounds"])
     if unusual:
         issues.append("Outside the Beijing source data's observed range: " + ", ".join(unusual) + ".")
-    if distance is not None and (not np.isfinite(distance) or distance > evidence["distance_p99"]):
+    all_fields = [field for _, fields, _ in groups for field in fields]
+    complete = all(present(values.get(field)) for field in all_fields)
+    threshold = evidence.get(
+        "distance_p99_complete" if complete else "distance_p99_masked",
+        evidence.get("distance_p99"),
+    )
+    if distance is not None and (
+        not np.isfinite(distance) or threshold is None or distance > threshold
+    ):
         issues.append("This combination is unusually far from historical cluster centres. Check the readings and units.")
     return issues
 

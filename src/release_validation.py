@@ -209,6 +209,7 @@ def clustering_evidence(root: Path, model: dict) -> dict:
 
     baseline = predict(complete)
     comparisons = []
+    masked_distances = []
     # Compare partially supplied records with each same record's complete-data
     # assignment. This tests assignment stability, not ground-truth accuracy.
     for seed in range(8):
@@ -218,7 +219,9 @@ def clustering_evidence(root: Path, model: dict) -> dict:
             keep = np.argsort(rng.random((len(partial), len(names))), axis=1)[:, :keep_count]
             for index, name in enumerate(names):
                 partial.loc[~np.any(keep == index, axis=1), name] = np.nan
-        comparisons.append(float((predict(partial) == baseline).mean()))
+        partial_scaled = model["preprocessing"].transform(engineer_features(partial))
+        comparisons.append(float((model["kmeans"].predict(partial_scaled) == baseline).mean()))
+        masked_distances.append(model["kmeans"].transform(partial_scaled).min(axis=1))
     scaled = model["preprocessing"].transform(engineer_features(complete))
     distances = model["kmeans"].transform(scaled).min(axis=1)
     return {
@@ -229,7 +232,8 @@ def clustering_evidence(root: Path, model: dict) -> dict:
         "masked_assignment_agreement": float(np.mean(comparisons)),
         "mask_trials": len(comparisons),
         "reference_rows": int(len(complete)),
-        "distance_p99": float(np.quantile(distances, .99)),
+        "distance_p99_complete": float(np.quantile(distances, .99)),
+        "distance_p99_masked": float(np.quantile(np.concatenate(masked_distances), .99)),
         "bounds": percentile_bounds(complete, POLLUTANTS + WEATHER),
     }
 

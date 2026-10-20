@@ -83,7 +83,7 @@
     }
   },
   "classification": {
-    "model_id": "143ac634ef10",
+    "model_id": "15974c1a53d7",
     "base_model_id": "ace65f3c1d9e",
     "measured_fields_required": 12,
     "measured_fields_total": 24,
@@ -299,7 +299,8 @@
     "masked_assignment_agreement": 0.9189583333333333,
     "mask_trials": 8,
     "reference_rows": 3000,
-    "distance_p99": 4.8285307455282815,
+    "distance_p99_complete": 4.8285307455282815,
+    "distance_p99_masked": 4.382590506207791,
     "bounds": {
       "PM2.5": {
         "min": 3.0,

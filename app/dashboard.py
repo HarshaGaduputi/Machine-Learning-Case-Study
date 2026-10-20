@@ -88,6 +88,7 @@ def load_tables(modified: tuple[int, ...]) -> dict[str, pd.DataFrame | None]:
         "regression_metrics": "regression_gui_metrics.csv",
         "regression_test": "regression_gui_test_predictions.csv",
         "classification_results": "classification_comparison.csv",
+        "classification_cv": "classification_cv.csv",
         "classification_confusion": "classification_gui_confusion.csv",
         "classification_reliability": "classification_reliability.csv",
         "clustering_comparison": "clustering_comparison.csv",
@@ -490,7 +491,7 @@ def classification_tab(model: dict | None, calibrated, tables: dict, evidence: d
     c.metric("Measured fields", f"{provided} / {len(measurements)}")
     input_note = (f"{missing_features} model inputs, including any unknown date fields, were imputed."
                   if missing_features else "All model inputs were supplied.")
-    st.caption(f"{provided} of {len(measurements)} measurements supplied. {input_note}")
+    st.caption(f"Selected model: {model['name']}. {provided} of {len(measurements)} measurements supplied. {input_note}")
     unusual = [field for field in measurements if pd.notna(values[field])
                and not ranges[field][0] <= values[field] <= ranges[field][1]]
     if unusual:
@@ -624,11 +625,16 @@ def clustering_tab(model: dict | None, tables: dict, evidence: dict | None) -> N
                  "This is an unsupervised assignment among three fitted groups. It does not predict an official air-quality class.")
     a, b, c = st.columns([1.4, 1, 1])
     a.metric("Assigned cluster", f"{cluster + 1} / {model['kmeans'].n_clusters}")
-    b.metric("Historical observations", f"{int(profile['Observations']):,}")
+    b.metric("Centroid distance", f"{distance:.2f}")
     c.metric("Fields supplied", f"{provided} / {len(values)}")
     input_note = ("Unknown fields were filled by the fitted preprocessing pipeline."
                   if provided < len(values) else "No raw reading fields were missing.")
-    st.caption(f"{input_note} Display label {cluster + 1} corresponds to saved model cluster ID {cluster}. "
+    distance_limit = evidence[
+        "distance_p99_complete" if provided == len(values) else "distance_p99_masked"
+    ]
+    st.caption(f"{input_note} This cluster contains {int(profile['Observations']):,} historical observations. "
+               f"Centroid distance {distance:.2f}; comparable-input 99th-percentile limit {distance_limit:.2f}. "
+               f"Display label {cluster + 1} corresponds to saved model cluster ID {cluster}. "
                f"The masked-input agreement check was {evidence['masked_assignment_agreement']:.1%} "
                f"on {evidence['reference_rows']:,} historical rows; this is not ground-truth accuracy.")
     record = result_record(
@@ -744,7 +750,16 @@ def results_tab(tables: dict, evidence: dict | None) -> None:
     with st.expander("Classification · ten-algorithm comparison"):
         if classification_results is not None:
             st.dataframe(classification_results.round(4), width="stretch", hide_index=True)
-        st.caption("All algorithms use the same held-out partition; the selected classifier is saved for this GUI.")
+        review2_names = ["Random Forest", "AdaBoost", "Gradient Boosting", "Bagging", "MLP Neural Network"]
+        review2 = classification_results[classification_results["Algorithm"].isin(review2_names)] \
+            if classification_results is not None else None
+        if review2 is not None:
+            st.markdown("**Five Review 2 additions**")
+            st.dataframe(review2.round(4), width="stretch", hide_index=True)
+        if tables["classification_cv"] is not None:
+            st.markdown("**Training-only five-fold selection**")
+            st.dataframe(tables["classification_cv"].round(4), width="stretch", hide_index=True)
+        st.caption("All algorithms use the same held-out partition. The five Review 2 models are selected using training-only cross-validation; the test table remains descriptive.")
 
     with st.expander("Clustering · algorithms and visualisations"):
         if comparison is not None:
@@ -790,7 +805,7 @@ def main() -> None:
       :root {--ink:#142b35; --muted:#667b80; --teal:#126c70; --line:#dce6e4; --paper:#f5f8f6;}
       html, body, [class*="css"] {font-family: "Avenir Next", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;}
       .stApp {background:var(--paper); color:var(--ink);}
-      .block-container {max-width:1190px; padding:2.4rem 2.2rem 5rem;}
+      .block-container {max-width:1120px; padding:1.7rem 2rem 4rem;}
       header[data-testid="stHeader"] {background:transparent;}
       h1,h2,h3,h4 {letter-spacing:-.035em; color:var(--ink);}
       p,li {line-height:1.62;}
@@ -801,13 +816,13 @@ def main() -> None:
       .brand-mark {display:grid; place-items:center; width:2.05rem; height:2.05rem; background:var(--teal);
         color:white; border-radius:.52rem; font-size:1.12rem; font-weight:600;}
       .mast-meta {font-size:.69rem; letter-spacing:.14em; color:var(--muted); font-weight:750; text-transform:uppercase;}
-      .hero {padding:3.3rem 0 2.35rem; max-width:840px;}
+      .hero {padding:1.75rem 0 1rem; max-width:760px;}
       .hero-kicker,.page-index,.result-label,.side-label {font-size:.68rem; letter-spacing:.16em;
         text-transform:uppercase; font-weight:800; color:var(--teal);}
-      .hero h1 {font-size:clamp(2.75rem,5vw,4.6rem); line-height:1.06; letter-spacing:-.065em;
-        margin:.65rem 0 1.05rem; font-weight:760;}
-      .hero p {font-size:1.13rem; color:#586e73; line-height:1.6; max-width:720px; margin:0;}
-      div[data-testid="stPills"] {margin-top:1.3rem; margin-bottom:.3rem;}
+      .hero h1 {font-size:clamp(2rem,4vw,3.25rem); line-height:1.08; letter-spacing:-.055em;
+        margin:.45rem 0 .65rem; font-weight:760;}
+      .hero p {font-size:1rem; color:#586e73; line-height:1.55; max-width:680px; margin:0;}
+      div[data-testid="stPills"] {margin-top:.8rem; margin-bottom:.2rem;}
       div[data-testid="stPills"] button {min-height:2.25rem; padding:.42rem .72rem;
         border:1px solid var(--line); background:#fff; border-radius:999px;
         color:#426269; font-size:.73rem; font-weight:720; letter-spacing:.03em;
@@ -816,10 +831,10 @@ def main() -> None:
       div[data-testid="stPills"] button:focus-visible {outline:3px solid #7ac2b8; outline-offset:3px;}
       div[data-testid="stPills"] button[data-testid="stBaseButton-pillsActive"]
         {background:#dfeeea; border-color:#7db8ae; color:#125e62;}
-      .page-heading {padding:2.65rem 0 1.2rem;}
+      .page-heading {padding:1.8rem 0 .9rem;}
       .page-heading h2 {font-size:clamp(2rem,3.1vw,2.9rem); line-height:1.12; margin:.6rem 0 .75rem;}
       .page-heading p {font-size:1rem; color:#61777c; max-width:690px; margin:0;}
-      .side-panel {margin-top:2.35rem; padding:1.45rem 1.55rem 1.25rem; border-radius:17px;
+      .side-panel {margin-top:1.6rem; padding:1.2rem 1.3rem 1.05rem; border-radius:15px;
         background:#173a43; color:#e4efeb; box-shadow:0 14px 32px rgba(18,48,56,.12);}
       .side-panel h3 {color:white; font-size:1.18rem; margin:.55rem 0 .75rem;}
       .side-panel .side-label {color:#a8dcd2;}
@@ -846,9 +861,6 @@ def main() -> None:
         border-radius:15px; padding:.55rem; overflow:hidden;}
       div[data-testid="stExpander"] {border:1px solid var(--line); border-radius:12px; background:#fff;}
       div[data-testid="stAlert"] {border-radius:11px;}
-      div[data-testid="stSegmentedControl"] {padding:.28rem; background:white; border:1px solid var(--line);
-        border-radius:13px; box-shadow:0 5px 18px rgba(25,62,68,.035);}
-      div[data-testid="stSegmentedControl"] button {border-radius:9px; font-weight:700;}
       .footer-note {border-top:1px solid var(--line); margin-top:3.5rem; padding-top:1.2rem;
         color:#728489; font-size:.74rem; display:flex; justify-content:space-between; gap:1rem;}
       @media(max-width:760px) {.block-container{padding:1.2rem 1rem 3rem;}.hero{padding:2.3rem 0 1.7rem;}
@@ -859,26 +871,22 @@ def main() -> None:
     st.markdown('''<div class="masthead"><div class="brand"><span class="brand-mark">◉</span>Fieldnote</div>
       <div class="mast-meta">Applied machine learning / Review 2</div></div>
       <div class="hero"><div class="hero-kicker">CASE STUDY / INTERACTIVE LAB</div>
-      <h1>Models made<br>understandable.</h1>
-      <p>Explore three distinct prediction tasks with real source data, visible model evidence,
-      and clear boundaries around what each result means.</p></div>''', unsafe_allow_html=True)
+      <h1>Applied ML, clearly.</h1>
+      <p>Run the three case-study models and inspect the evidence behind every result.</p></div>''', unsafe_allow_html=True)
     st.session_state["hero_task"] = VIEW_TASKS.get(st.session_state["current_view"])
     st.pills(
-        "Prediction pages", ["regression", "classification", "clustering"],
+        "Pages", ["regression", "classification", "clustering", "results"],
         format_func=lambda task: {
-            "regression": "01 · BUILDING ENERGY",
-            "classification": "02 · WATER LABELS",
-            "clustering": "03 · AIR PATTERNS",
+            "regression": "01 · BUILDING",
+            "classification": "02 · WATER",
+            "clustering": "03 · AIR",
+            "results": "04 · RESULTS",
         }[task],
         key="hero_task", on_change=select_hero_task,
         label_visibility="collapsed",
     )
 
-    view = st.segmented_control(
-        "Prediction task", ["Regression", "Classification", "Clustering", "Study results"],
-        key="current_view", on_change=sync_view_query,
-        label_visibility="collapsed", width="stretch",
-    )
+    view = st.session_state["current_view"]
     result_files = sorted((ROOT / "results").glob("*.csv"))
     tables = load_tables(tuple(path.stat().st_mtime_ns for path in result_files))
     evidence_path = ROOT / "results/release_validation.json"
