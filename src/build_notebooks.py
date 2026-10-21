@@ -33,6 +33,11 @@ clustering_cells = [
     **Question:** Do the hourly pollution and weather readings from 12 Beijing monitoring stations form distinct environmental patterns? This notebook fits K-Means and agglomerative hierarchical clustering, compares them on the same observations, and interprets the resulting groups. There are no class labels in training.
 
     Run every cell in order from the `notebooks/` directory. The shared implementation is in `src/clustering.py`; this notebook makes every analysis stage and its outputs visible.
+
+    ### Presentation split
+
+    - **Presenter 1 - Part I:** problem, data audit, exploratory analysis, preprocessing, and K-Means.
+    - **Presenter 2 - Part II:** hierarchical clustering, dendrogram, metric comparison, visualisation, and interpretation.
     """),
     code("""
     %matplotlib inline
@@ -52,7 +57,13 @@ clustering_cells = [
     print('Project root:', ROOT)
     """),
     markdown("""
-    ## 1. Data loading and audit
+    # Part I - Data preparation and K-Means
+
+    ## 1.1 Problem, dataset, and workflow
+
+    The analysis follows one reproducible path: load and audit the 12 station files, inspect the measurements, engineer clustering features, fit K-Means, fit hierarchical clustering, compare both methods on the same rows, and interpret the resulting patterns. No health label or target variable is used to train either algorithm.
+
+    ## 1.2 Data loading and audit
 
     The source is the Beijing Multi-Site Air Quality dataset: hourly measurements from 12 stations, March 2013 to February 2017. The loader checks the schema, station names, and duplicate station timestamps. `No` and `station` are identifiers, not clustering features.
     """),
@@ -67,7 +78,10 @@ clustering_cells = [
     display(raw['station'].value_counts().sort_index().to_frame('Rows'))
     """),
     markdown("""
-    ## 2. Exploratory data analysis
+    **Audit observation.** The combined file contains 420,768 hourly station records from 12 stations. Each station contributes the expected four-year time series. The station and timestamp checks prevent accidental duplication across source files, while the printed missing-value table identifies the measurements that require imputation.
+    """),
+    markdown("""
+    ## 1.3 Exploratory data analysis
 
     Missingness varies by sensor and pollutant. We keep incomplete readings and impute numerical feature medians before clustering. Pollution has a long right tail, so the model uses `log1p` for each pollutant. Extreme nonnegative readings are retained because they may represent real pollution episodes; negative physical readings are treated as missing.
     """),
@@ -84,6 +98,9 @@ clustering_cells = [
         ax.set(title=f'{name} distribution', xlabel=name, ylabel='Hourly readings')
     fig.tight_layout(); plt.show()
     """),
+    markdown("""
+    **Distribution observation.** The pollutant histograms are strongly right-skewed: most hourly readings are comparatively low, with a smaller number of severe episodes. This supports applying `log1p` before distance-based clustering so those episodes do not dominate every Euclidean distance.
+    """),
     code("""
     fig, ax = plt.subplots(figsize=(11, 8))
     sns.heatmap(raw[POLLUTANTS + WEATHER].corr(), cmap='vlag', center=0,
@@ -93,7 +110,10 @@ clustering_cells = [
     display(raw.groupby('station')[POLLUTANTS].mean().round(2))
     """),
     markdown("""
-    ## 3. Feature engineering and preprocessing
+    **Correlation observation.** PM2.5 and PM10 move together more strongly than many pollutant-weather pairs, while ozone follows a different relationship with temperature and the combustion-related pollutants. The station means also show that monitoring location affects the observed mixture, so station is retained for post-fit interpretation but excluded from the clustering features.
+    """),
+    markdown("""
+    ## 1.4 Feature engineering and preprocessing
 
     Hour, month, and wind direction are cyclic. Sine/cosine pairs keep nearby directions and boundary times close. Six pollutants are log transformed; five weather measurements remain in their original scale until standardization. Median imputation and scaling are fitted on the unsupervised dataset; there is no target or test split to leak into clustering.
     """),
@@ -105,9 +125,12 @@ clustering_cells = [
     display(engineered.head())
     """),
     markdown("""
-    ## 4. K-Means and hierarchical clustering
+    **Preprocessing choices.** Median imputation is robust to the long pollutant tails. Standardisation gives each engineered feature a comparable scale. Sine/cosine encoding prevents midnight from appearing far from 23:00, December from appearing far from January, and neighbouring compass directions from appearing unrelated.
+    """),
+    markdown("""
+    ## 1.5 K-Means model selection and fitting
 
-    K-Means is fitted on all available hourly readings. The elbow and candidate silhouette calculations use a reproducible 12,000-row selection sample, with 1,500 rows for silhouette scoring. The selected K maximizes sampled silhouette; the elbow curve provides a second visual check. Agglomerative clustering is fitted on a reproducible 3,000-row sample because pairwise merging has much higher cost. Both final algorithms are evaluated on **the same 3,000 rows**, using the same transformed features and all three required metrics.
+    K-Means is fitted on all available hourly readings. The elbow and candidate silhouette calculations use a reproducible 12,000-row selection sample, with 1,500 rows for silhouette scoring. The selected K maximises sampled silhouette; the elbow curve provides a second visual check. `n_init=10` reduces sensitivity to an unlucky centroid initialisation, and `random_state=42` makes the result reproducible.
     """),
     code("""
     result = run_clustering(raw)
@@ -126,12 +149,25 @@ clustering_cells = [
     fig.tight_layout(); plt.show()
     """),
     markdown("""
-    ### Hierarchical linkage analysis
+    **K-Means observation.** The candidate comparison selects three clusters. The elbow and silhouette views should be read together: the elbow shows diminishing reduction in within-cluster inertia, while silhouette measures separation. The selected value is then used consistently by both required algorithms.
 
-    Ward, complete, and average linkage are compared on the same sample. Ward is retained for the final hierarchical solution because it controls within-cluster variance and yields a direct comparison with K-Means' compact-cluster objective. The dendrogram displays the Ward merge structure on 1,000 sampled readings.
+    # Part II - Hierarchical clustering, comparison, and interpretation
+
+    ## 2.1 Agglomerative clustering and linkage strategies
+
+    Agglomerative clustering is fitted on a reproducible 3,000-row sample because pairwise merging has much higher memory and runtime cost than K-Means. Ward, complete, and average linkage are compared on exactly the same transformed rows and with the same three-cluster count. Ward is retained because it controls within-cluster variance and provides a direct comparison with K-Means' compact-cluster objective.
     """),
     code("""
     display(result['linkage_table'].round(4))
+    """),
+    markdown("""
+    **Linkage observation.** Complete and average linkage produce higher silhouette values, but their Calinski-Harabasz scores are dramatically lower than Ward's. That disagreement indicates small or outlier-driven partitions rather than an unambiguous improvement. Ward therefore remains the main hierarchical result, while every linkage result stays visible.
+
+    ## 2.2 Dendrogram and merge structure
+
+    A full dendrogram with hundreds of thousands of leaves would be unreadable. The plot uses a reproducible 1,000-row subset and truncates the display to the final 35 merges. The vertical distance represents the increase in Ward linkage cost when observation groups are joined.
+    """),
+    code("""
     fig, ax = plt.subplots(figsize=(13, 6))
     dendrogram(result['dendrogram_linkage'], truncate_mode='lastp', p=35,
                leaf_rotation=90, ax=ax)
@@ -140,7 +176,9 @@ clustering_cells = [
     fig.tight_layout(); plt.show()
     """),
     markdown("""
-    ## 5. Comparative evaluation
+    **Dendrogram observation.** Larger vertical jumps near the top indicate that the final merged groups are less alike than the groups joined lower in the tree. The dendrogram supports a small number of broad patterns, but it does not establish an objectively correct environmental class count.
+
+    ## 2.3 Comparative evaluation on identical observations
 
     Higher silhouette and Calinski-Harabasz scores and lower Davies-Bouldin scores indicate stronger separation under these definitions. These are internal metrics, not proof of physical or health categories. The common evaluation rows make the two algorithms directly comparable.
     """),
@@ -148,7 +186,9 @@ clustering_cells = [
     display(result['comparison'].round(4))
     """),
     markdown("""
-    ## 6. Two-component PCA and t-SNE views
+    **Metric interpretation.** On the common 3,000-row evaluation sample, K-Means has the stronger result on all three reported metrics: silhouette is higher, Davies-Bouldin is lower, and Calinski-Harabasz is higher. The silhouette values remain modest, so the data contains overlapping environmental patterns rather than perfectly isolated groups.
+
+    ## 2.4 PCA and t-SNE visualisation
 
     PCA projects the same 3,000 comparison readings into two dimensions. Colour indicates the cluster assignment from each algorithm; clustering itself uses all 17 standardized features. t-SNE is an additional local-structure view for a reproducible 1,200-row K-Means sample. Neither projection is used to fit the clustering models.
     """),
@@ -169,6 +209,9 @@ clustering_cells = [
     print('PCA explained variance:', result['pca'].explained_variance_ratio_.round(4),
           'total', result['pca'].explained_variance_ratio_.sum().round(4))
     """),
+    markdown("""
+    **PCA observation.** The two components retain about half of the transformed variance. K-Means appears more compact in this projection than Ward, which agrees with the internal metrics, but overlap is expected because the remaining components are not shown.
+    """),
     code("""
     tsne_labels = result['kmeans_common'][result['tsne_indices']]
     fig, ax = plt.subplots(figsize=(8, 6))
@@ -181,7 +224,9 @@ clustering_cells = [
     ax.legend(); fig.tight_layout(); plt.show()
     """),
     markdown("""
-    ## 7. Interpretation and export
+    **t-SNE observation.** The local-neighbourhood view reveals curved and partially separated regions while preserving visible overlap. Because t-SNE can distort global distances, it is used only as an encouraged visualisation and never as evidence that the clusters are official categories.
+
+    ## 2.5 Cluster profiles, interpretation, and export
 
     The profile table reports original-unit pollutant and weather means, together with cluster sizes. It helps describe each numerical cluster without treating its arbitrary index as a quality label. Monitoring station is used only for this post-fit interpretation. We save the fitted preprocessing and K-Means model for the interactive application.
     """),
@@ -197,9 +242,14 @@ clustering_cells = [
     print('Saved comparison, plots data, profiles, and prediction model under results/ and models/.')
     """),
     markdown("""
-    ## Conclusion and limitations
+    **Profile observation.** The original-unit table gives the defensible meaning of each cluster: compare its average particulates, gases, temperature, pressure, rain, and wind speed instead of assigning unsupported labels such as “safe” or “dangerous.” The station mix checks whether a pattern is widespread or concentrated at particular monitoring sites.
+    """),
+    markdown("""
+    # Final conclusion and limitations
 
-    The comparison table above summarizes the two required algorithms on the same observations. The elbow, dendrogram, PCA views, and t-SNE view show different aspects of cluster structure. Cluster counts and environmental profiles should be interpreted with their actual values above; their integer labels carry no inherent ranking. Agglomerative labels apply only to the 3,000-row sample, while K-Means assigns every reading. Silhouette and PCA are descriptive tools, and no ground-truth air-quality class was supplied for validation.
+    The notebook completes both required algorithms and evaluates them fairly on the same observations. K-Means provides the stronger compact-cluster solution for this feature space, while Ward supplies the required hierarchical comparison and merge structure. The elbow, dendrogram, PCA, and t-SNE views answer different questions and should not be treated as interchangeable proof.
+
+    Cluster numbers are arbitrary and carry no inherent ranking. Agglomerative labels apply only to the 3,000-row analysis sample, while K-Means assigns every reading. The two-dimensional projections omit part of the feature variance, all internal metrics depend on the preprocessing and distance definition, and no ground-truth air-quality class was supplied. These clusters describe recurring patterns in this dataset; they are not official AQI or health categories.
     """),
 ]
 
